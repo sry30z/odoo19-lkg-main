@@ -1,0 +1,439 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Paper Format: Zero Margin A4 -->
+    <record id="paperformat_wht_50tawi" model="report.paperformat">
+        <field name="name">A4 WHT 50 Tawi (Zero Margin)</field>
+        <field name="default" eval="False" />
+        <field name="format">A4</field>
+        <field name="page_height">0</field>
+        <field name="page_width">0</field>
+        <field name="orientation">Portrait</field>
+        <field name="margin_top">0</field>
+        <field name="margin_bottom">0</field>
+        <field name="margin_left">0</field>
+        <field name="margin_right">0</field>
+        <field name="header_line" eval="False" />
+        <field name="header_spacing">0</field>
+        <field name="dpi">96</field>
+    </record>
+    <!-- Report Action -->
+    <record id="action_wht_50tawi" model="ir.actions.report">
+        <field name="name">50 ทวิ (ใบรับรองการหักภาษี ณ ที่จ่าย)</field>
+        <field name="model">account.wht.certificate</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">account_WHT.report_wht_50tawi_basic</field>
+        <field name="report_file">account_WHT.report_wht_50tawi_basic</field>
+        <field name="print_report_name">'50 ทวิ - %s' % (object.certificate_no)</field>
+        <field name="binding_model_id" ref="model_account_wht_certificate" />
+        <field name="binding_type">report</field>
+        <field name="paperformat_id" ref="account_WHT.paperformat_wht_50tawi" />
+    </record>
+    <!-- Report Template -->
+    <template id="report_wht_50tawi_basic">
+        <t t-call="web.html_container">
+            <meta charset="utf-8"/>
+            <style type="text/css">
+                @font-face {
+                    font-family: 'Sarabun';
+                    src: url('/account_WHT/static/src/fonts/Sarabun-Regular.ttf') format('truetype');
+                    font-weight: normal;
+                    font-style: normal;
+                }
+                @font-face {
+                    font-family: 'Sarabun';
+                    src: url('/account_WHT/static/src/fonts/Sarabun-Medium.ttf') format('truetype');
+                    font-weight: 500;
+                    font-style: normal;
+                }
+                @font-face {
+                    font-family: 'Sarabun';
+                    src: url('/account_WHT/static/src/fonts/Sarabun-Bold.ttf') format('truetype');
+                    font-weight: bold;
+                    font-style: normal;
+                }
+
+                /* การตั้งค่าหน้ากระดาษสำหรับการพิมพ์ */
+                @page {
+                    margin: 0;
+                    padding: 0;
+                    size: 210mm 297mm;
+                }
+
+                html, body {
+                    margin: 0 !important;
+                    padding: 0 !important;
+                    background: white !important;
+                    width: 210mm !important;
+                    height: 297mm !important;
+                    -webkit-font-smoothing: antialiased;
+                }
+
+                /* ฟอนต์ภาษาไทย (Embedded - ไม่พึ่ง system font) */
+                html, body, div, span, p, table, tr, td, th {
+                    font-family: 'Sarabun' !important;
+                }
+                body {
+                    font-size: 12px;
+                }
+
+                * {
+                    color: #000;
+                    box-sizing: border-box;
+                }
+
+                /* แผ่นกระดาษ A4 - Adjusted for Tolerance */
+                .wht-page {
+                    position: relative;
+                    width: 209mm !important;
+                    height: 296mm !important;
+                    background: white;
+                    overflow: hidden;
+                    page-break-after: always;
+                    margin: 0 !important;
+                    padding: 0 !important;
+                    border: none !important;
+                    left: 0 !important;
+                    top: 0 !important;
+                }
+
+                /* เลเยอร์รูปพื้นหลังแบบฟอร์ม */
+                .bg-layer {
+                    position: absolute;
+                    top: 0; 
+                    left: 0;
+                    width: 210mm;
+                    height: 297mm;
+                    z-index: 0;
+                    display: block;
+                }
+
+                /* เลเยอร์ข้อมูลที่พิมพ์ทับ */
+                .content-layer {
+                    position: absolute;
+                    top: 0; 
+                    left: 0;
+                    width: 210mm;
+                    height: 297mm;
+                    z-index: 10;
+                }
+
+                .pos-abs {
+                    position: absolute;
+                }
+
+                /* ช่องเลขประจำตัวผู้เสียภาษี */
+                .tax-digit-box {
+                    width: 2mm; 
+                    height: 6.5mm;
+                    display: inline-block;
+                    text-align: center;
+                    line-height: 6.5mm;
+                    font-size: 13px;
+                    font-weight: bold;
+                    margin-right: 1.5mm;
+                   /* border: 1px solid #eee; *//* ปลดคอมเมนต์ถ้าต้องการดูระยะช่อง */
+                }
+
+                .tax-digit-box:nth-child(1)  { margin-right: 3mm; } /* หลังตัวที่ 1 */
+                .tax-digit-box:nth-child(5)  { margin-right: 4mm; } /* หลังตัวที่ 4 */
+                .tax-digit-box:nth-child(10)  { margin-right: 4mm; } /* หลังตัวที่ 9 */
+                .tax-digit-box:nth-child(12) { margin-right: 4mm; } /* หลังตัวที่ 11 */
+
+                /* ตัวสุดท้ายไม่ต้องมี margin */
+                .tax-digit-box:last-child { margin-right: 0; }
+
+                /* ตำแหน่งข้อมูล ผู้จ่ายเงิน */
+                .payer-name    { top: 38mm; left: 20mm; font-size: 10px; }
+                .payer-vat     { top: 32mm; left: 134mm; }
+                .payer-address { top: 46mm; left: 22mm; width: 175mm; font-size: 10px; line-height: 6mm; }
+
+                /* ตำแหน่งข้อมูล ผู้รับเงิน */
+                .payee-name    { top: 64mm; left: 20mm; font-size: 10px; }
+                .payee-vat     { top: 56mm; left: 134mm; }
+                .payee-address { top: 72mm; left: 22mm; width: 175mm; font-size: 10px; line-height: 6mm; }
+
+                /* เครื่องหมาย X เลือกประเภทภาษี — คืนค่าตำแหน่งเดิม (167mm, 140mm) และใช้ Grid 27mm */
+                /* แถวที่ 1: ภ.ง.ด.1 (ถ้ามี) | ภ.ง.ด.1ก | ภ.ง.ด.1ก พิเศษ | ภ.ง.ด.2 | ภ.ง.ด.3 */
+                .check-pnd1         { top: 82.5mm; left: 75mm;  font-size: 16px; }
+                .check-pnd1k        { top: 82.5mm; left: 75mm;  font-size: 16px; }
+                .check-pnd1-special { top: 82.5mm; left: 102mm; font-size: 16px; }
+                .check-pnd2         { top: 82.5mm; left: 140mm; font-size: 16px; }
+                .check-pnd3         { top: 82.5mm; left: 167mm; font-size: 16px; }
+                /* แถวที่ 2: ภ.ง.ด.2ก | ภ.ง.ด.3ก | ภ.ง.ด.53 */
+                .check-pnd2k        { top: 89mm; left: 75mm;  font-size: 16px; }
+                .check-pnd3k        { top: 89mm; left: 102mm; font-size: 16px; }
+                .check-pnd53        { top: 89mm; left: 140mm; font-size: 16px; }
+
+
+                /* วิธีหัก (ส่วนล่างของใบรับรอง) */
+                .check-deduct       { top: 250mm; left: 32mm;  font-size: 16px; }
+                .check-gross-forever { top: 250mm; left: 63mm; font-size: 16px; }
+                .check-gross-once   { top: 250mm; left: 101mm; font-size: 16px; }
+                
+                /* เลขที่ใบรับรอง และ จำนวนเงินตัวอักษร */
+                .cert-no            { top: 26mm; left: 182mm; font-size: 10px; }
+                .cert-no span { font-size: 8px !important; line-height: 10px; }
+                .total-tax-text     { top: 237mm; left: 45mm; font-size: 10px; width: 100mm; text-align: center; }
+
+                /* ตารางรายการเงินได้ (แถว 1-6) */
+                .income-date-1 { top: 106.5mm; left: 120mm; font-size: 12px; }
+                .income-base-1 { top: 106.5mm; left: 143mm; font-size: 12px; text-align: right; width: 28mm; }
+                .income-tax-1  { top: 106.5mm; left: 173mm; font-size: 12px; text-align: right; width: 22mm; }
+
+                .income-date-2 { top: 111.5mm; left: 120mm; font-size: 12px; }
+                .income-base-2 { top: 111.5mm; left: 143mm; font-size: 12px; text-align: right; width: 28mm; }
+                .income-tax-2  { top: 111.5mm; left: 173mm; font-size: 12px; text-align: right; width: 22mm; }
+
+                .income-date-3 { top: 116.5mm; left: 120mm; font-size: 12px; }
+                .income-base-3 { top: 116.5mm; left: 143mm; font-size: 12px; text-align: right; width: 28mm; }
+                .income-tax-3  { top: 116.5mm; left: 173mm; font-size: 12px; text-align: right; width: 22mm; }
+
+                .income-date-4 { top: 121.5mm; left: 120mm; font-size: 12px; }
+                .income-base-4 { top: 121.5mm; left: 143mm; font-size: 12px; text-align: right; width: 28mm; }
+                .income-tax-4  { top: 121.5mm; left: 173mm; font-size: 12px; text-align: right; width: 22mm; }
+
+                 /* 4ข (1.1-1.4) */
+                .income-date-4_11 { top: 141.5mm; left: 120mm; font-size: 11px; }
+                .income-base-4_11 { top: 141.5mm; left: 143mm; font-size: 11px; text-align: right; width: 28mm; }
+                .income-tax-4_11  { top: 141.5mm; left: 173mm; font-size: 11px; text-align: right; width: 22mm; }
+                .income-date-4_12 { top: 146.5mm; left: 120mm; font-size: 11px; }
+                .income-base-4_12 { top: 146.5mm; left: 143mm; font-size: 11px; text-align: right; width: 28mm; }
+                .income-tax-4_12  { top: 146.5mm; left: 173mm; font-size: 11px; text-align: right; width: 22mm; }
+                .income-date-4_13 { top: 151.5mm; left: 120mm; font-size: 11px; }
+                .income-base-4_13 { top: 151.5mm; left: 143mm; font-size: 11px; text-align: right; width: 28mm; }
+                .income-tax-4_13  { top: 151.5mm; left: 173mm; font-size: 11px; text-align: right; width: 22mm; }
+                .income-date-4_14 { top: 156.5mm; left: 120mm; font-size: 11px; }
+                .income-base-4_14 { top: 156.5mm; left: 143mm; font-size: 11px; text-align: right; width: 28mm; }
+                .income-tax-4_14  { top: 156.5mm; left: 173mm; font-size: 11px; text-align: right; width: 22mm; }
+                .income-desc-4_14 { top: 157mm; left: 60mm; font-size: 11px; width: 43mm; }
+
+                 /* 4ข (2.1-2.5) */
+                .income-date-4_21 { top: 166.5mm; left: 120mm; font-size: 11px; }
+                .income-base-4_21 { top: 166.5mm; left: 143mm; font-size: 11px; text-align: right; width: 28mm; }
+                .income-tax-4_21  { top: 166.5mm; left: 173mm; font-size: 11px; text-align: right; width: 22mm; }
+                .income-date-4_22 { top: 176.5mm; left: 120mm; font-size: 11px; }
+                .income-base-4_22 { top: 176.5mm; left: 143mm; font-size: 11px; text-align: right; width: 28mm; }
+                .income-tax-4_22  { top: 176.5mm; left: 173mm; font-size: 11px; text-align: right; width: 22mm; }
+                .income-date-4_23 { top: 186.5mm; left: 120mm; font-size: 11px; }
+                .income-base-4_23 { top: 186.5mm; left: 143mm; font-size: 11px; text-align: right; width: 28mm; }
+                .income-tax-4_23  { top: 186.5mm; left: 173mm; font-size: 11px; text-align: right; width: 22mm; }
+                .income-date-4_24 { top: 191.5mm; left: 120mm; font-size: 11px; }
+                .income-base-4_24 { top: 191.5mm; left: 143mm; font-size: 11px; text-align: right; width: 28mm; }
+                .income-tax-4_24  { top: 191.5mm; left: 173mm; font-size: 11px; text-align: right; width: 22mm; }
+                .income-date-4_25 { top: 196.5mm; left: 120mm; font-size: 11px; }
+                .income-base-4_25 { top: 196.5mm; left: 143mm; font-size: 11px; text-align: right; width: 28mm; }
+                .income-tax-4_25  { top: 196.5mm; left: 173mm; font-size: 11px; text-align: right; width: 22mm; }
+                .income-desc-4_25 { top: 198mm; left: 60mm; font-size: 11px; width: 43mm; }
+                
+                .income-date-5 { top: 215.5mm; left: 120mm; font-size: 11px; }
+                .income-base-5 { top: 215.5mm; left: 143mm; font-size: 11px; text-align: right; width: 28mm; }
+                .income-tax-5  { top: 215.5mm; left: 173mm; font-size: 11px; text-align: right; width: 22mm; }
+
+                .income-date-6 { top: 223.5mm; left: 120mm; font-size: 11px; }
+                .income-base-6 { top: 223.5mm; left: 143mm; font-size: 11px; text-align: right; width: 28mm; }
+                .income-tax-6  { top: 223.5mm; left: 173mm; font-size: 11px; text-align: right; width: 22mm; }
+                .income-desc-6 { top: 223.5mm; left: 40mm; font-size: 11px; width: 95mm; }
+
+                /* ยอดรวมสุทธิ */
+                .total-base     { top: 229mm; left: 143mm; font-size: 13px; text-align: right; width: 28mm; }
+                .total-tax      { top: 229mm; left: 173mm; font-size: 13px; text-align: right; width: 22mm; }
+
+                /* ส่วนท้าย (ลายเซ็น) - Adjusted positions to stay inside safe area */
+                .sig-day   { top: 265mm; left: 119mm; font-size: 14px; }
+                .sig-month { top: 265mm; left: 132mm; font-size: 14px; }
+                .sig-year  { top: 265mm; left: 154mm; font-size: 14px; }
+                .company-signature { top: 252mm; left: 125mm; width: 40mm; z-index: 100; }
+
+                /* ซ่อนเงาและสีพื้นหลังตอนพิมพ์จริง */
+                @media print {
+                    body { background: white; }
+                    .wht-page { box-shadow: none; }
+                }</style>
+            <t t-foreach="docs" t-as="doc">
+                <div class="wht-page">
+                    <!-- ░░ LAYER 0: Background (base64 embedded = 100% reliable) ░░ -->
+                    <t t-set="bg_src" t-value="doc.get_wht_background_base64()" />
+                    <t t-if="bg_src">
+                        <img t-att-src="bg_src" class="bg-layer" style="display:block; width: 100%; height: 100%; object-fit: fill;" alt="" />
+                    </t>
+                    <!-- ░░ LAYER 1: Content ░░ -->
+                    <div class="content-layer">
+                        <!-- เลขที่ใบรับรอง (มุมขวาบน) -->
+                        <div class="pos-abs cert-no">
+                            <span t-esc="(doc.certificate_no or '').replace('/', '').replace('-', '').replace(' ', '')" />
+                        </div>
+                        <!-- ── ประเภทแบบภาษี: แสดง Checkbox ตาม doc.wht_type ครบทุกประเภท ── -->
+                        <t t-set="_chk">
+                            <svg viewBox="0 0 24 24" width="14" height="14" stroke="black" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                                <polyline points="20 6 9 17 4 12" />
+                            </svg>
+                        </t>
+                        <t t-if="doc.wht_type == 'pnd1'">
+                            <div class="pos-abs check-pnd1">
+                                <t t-out="_chk" />
+                            </div>
+                        </t>
+                        <t t-if="doc.wht_type == 'pnd1k'">
+                            <div class="pos-abs check-pnd1k">
+                                <t t-out="_chk" />
+                            </div>
+                        </t>
+                        <t t-if="doc.wht_type == 'pnd1_special'">
+                            <div class="pos-abs check-pnd1-special">
+                                <t t-out="_chk" />
+                            </div>
+                        </t>
+                        <t t-if="doc.wht_type == 'pnd2'">
+                            <div class="pos-abs check-pnd2">
+                                <t t-out="_chk" />
+                            </div>
+                        </t>
+                        <t t-if="doc.wht_type == 'pnd2k'">
+                            <div class="pos-abs check-pnd2k">
+                                <t t-out="_chk" />
+                            </div>
+                        </t>
+                        <t t-if="doc.wht_type == 'pnd3' or (not doc.wht_type and doc.partner_id.company_type == 'person')">
+                            <div class="pos-abs check-pnd3">
+                                <t t-out="_chk" />
+                            </div>
+                        </t>
+                        <t t-if="doc.wht_type == 'pnd3k'">
+                            <div class="pos-abs check-pnd3k">
+                                <t t-out="_chk" />
+                            </div>
+                        </t>
+                        <t t-if="doc.wht_type == 'pnd53' or (not doc.wht_type and doc.partner_id.company_type != 'person')">
+                            <div class="pos-abs check-pnd53">
+                                <t t-out="_chk" />
+                            </div>
+                        </t>
+
+                        <!-- ── ผู้จ่ายเงิน (Payer = บริษัทเรา) ── -->
+                        <div class="pos-abs payer-name">
+                            <span t-field="doc.company_id.name" />
+                        </div>
+                        <div class="pos-abs payer-vat">
+                            <t t-foreach="(doc.company_id.vat or '').replace('-','').replace(' ','')" t-as="d">
+                                <span class="tax-digit-box">
+                                    <t t-esc="d" />
+                                </span>
+                            </t>
+                        </div>
+                        <div class="pos-abs payer-address">
+                            <t t-if="doc.company_id.street">
+                                <span t-esc="doc.company_id.street" />
+                            </t>
+                            <t t-if="doc.company_id.street2">
+                                <span t-esc="doc.company_id.street2" />
+                            </t>
+                            <t t-if="doc.company_id.city">
+                                <span t-esc="doc.company_id.city" />
+                            </t>
+                            <t t-if="doc.company_id.state_id">
+                                <span t-esc="doc.company_id.state_id.name" />
+                            </t>
+                            <t t-if="doc.company_id.zip">
+                                <span t-esc="doc.company_id.zip" />
+                            </t>
+                        </div>
+                        <!-- ── ผู้รับเงิน (Payee = คู่ค้า) ── -->
+                        <div class="pos-abs payee-name">
+                            <span t-field="doc.partner_id.name" />
+                        </div>
+                        <div class="pos-abs payee-vat">
+                            <t t-foreach="(doc.partner_taxid or '').replace('-','').replace(' ','')" t-as="d">
+                                <span class="tax-digit-box">
+                                    <t t-esc="d" />
+                                </span>
+                            </t>
+                        </div>
+                        <div class="pos-abs payee-address">
+                            <span t-field="doc.partner_address" />
+                        </div>
+                        <!-- ── รายการเงินได้ (Dynamic Row 1-6 และหมวดย่อย 4ข) ── -->
+                        <t t-set="valid_codes" t-value="['1','2','3','4','4_11','4_12','4_13','4_14','4_21','4_22','4_23','4_24','4_25','5','6']"/>
+                        <t t-foreach="doc.get_grouped_income_lines()" t-as="g">
+                            <t t-set="r" t-value="g['code'] if g['code'] in valid_codes else '6'"/>
+
+                            <!-- แสดงชื่อประเภทเงินได้สำหรับช่องที่มีให้ (ระบุ) เช่น 4_14, 4_25 หรือ 6 -->
+                            <t t-if="r in ['4_14', '4_25', '6']">
+                                <div t-attf-class="pos-abs income-desc-{{r}}">
+                                    <t t-set="income_name" t-value="g.get('name') or 'อื่นๆ'"/>
+                                    <span t-esc="income_name" />
+                                </div>
+                            </t>
+
+                            <div t-attf-class="pos-abs income-date-{{r}}">
+                                <span t-esc="g['date'].strftime('%d/%m/') + str(g['date'].year + 543) if g['date'] else ''" />
+                            </div>
+                            <div t-attf-class="pos-abs income-base-{{r}}">
+                                <span t-esc="'{:,.2f}'.format(g['base_amount'])" />
+                            </div>
+                            <div t-attf-class="pos-abs income-tax-{{r}}">
+                                <span t-esc="'{:,.2f}'.format(g['tax_amount'])" />
+                            </div>
+                        </t>
+                        <!-- ── ยอดรวม ── -->
+                        <div class="pos-abs total-base">
+                            <span t-field="doc.base_amount" t-options='{"widget": "float", "precision": 2}' />
+                        </div>
+                        <div class="pos-abs total-tax">
+                            <span t-field="doc.tax_amount" t-options='{"widget": "float", "precision": 2}' />
+                        </div>
+                        <div class="pos-abs total-tax-text">
+                            <t t-set="amt_txt" t-value="doc.currency_id.with_context(lang='th_TH').amount_to_text(doc.tax_amount)"/>
+                            (<span t-esc="amt_txt.replace(' ', '') if 'สตางค์' in amt_txt or amt_txt.replace(' ', '').endswith('ถ้วน') else amt_txt.replace(' ', '') + 'ถ้วน'"/>)
+                        </div>
+
+                        <!-- ── วิธีหัก ── -->
+                        <t t-if="doc.wht_pay_type == 'normal' or not doc.wht_pay_type">
+                            <div class="pos-abs check-deduct">
+                                <svg viewBox="0 0 24 24" width="14" height="14" stroke="black" stroke-width="4" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                                    <polyline points="20 6 9 17 4 12" />
+                                </svg>
+                            </div>
+                        </t>
+                        <t t-if="doc.wht_pay_type == 'gross_up_forever'">
+                            <div class="pos-abs check-gross-forever">
+                                <svg viewBox="0 0 24 24" width="14" height="14" stroke="black" stroke-width="4" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                                    <polyline points="20 6 9 17 4 12" />
+                                </svg>
+                            </div>
+                        </t>
+                        <t t-if="doc.wht_pay_type == 'gross_up_once'">
+                            <div class="pos-abs check-gross-once">
+                                <svg viewBox="0 0 24 24" width="14" height="14" stroke="black" stroke-width="4" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                                    <polyline points="20 6 9 17 4 12" />
+                                </svg>
+                            </div>
+                        </t>
+                        <!-- ── วัน เดือน ปี (พ.ศ.) ที่ลงนาม ── -->
+                        <div class="pos-abs sig-day">
+                            <span t-esc="doc.issue_date.strftime('%d') if doc.issue_date else ''" />
+                        </div>
+                        <div class="pos-abs sig-month">
+                            <span t-esc="doc.issue_date.strftime('%m') if doc.issue_date else ''" />
+                        </div>
+                        <div class="pos-abs sig-year">
+                            <span t-esc="str(doc.issue_date.year + 543) if doc.issue_date else ''" />
+                        </div>
+                        <!-- ── ลายเซ็นบริษัทหรือชื่อผู้ลงนาม ── -->
+                        <div class="pos-abs company-signature">
+                            <t t-if="doc.company_id.wht_signer_mode == 'name' and doc.company_id.signature_name">
+                                <div style="max-height: 25mm; max-width: 50mm; text-align: center; padding-top: 10mm; font-size: 14px;">
+                                    <span t-esc="doc.company_id.signature_name"/>
+                                </div>
+                            </t>
+                            <t t-elif="doc.company_id.wht_signer_mode != 'name' and doc.company_id.signature_image">
+                                <img t-att-src="image_data_uri(doc.company_id.signature_image)" style="max-height: 25mm; max-width: 25mm;" />
+                            </t>
+                        </div>
+                    </div>
+                    <!-- /content-layer -->
+                </div>
+                <!-- /wht-page -->
+            </t>
+        </t>
+    </template>
+</odoo>

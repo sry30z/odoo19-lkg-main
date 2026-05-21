@@ -1,0 +1,17 @@
+<odoo>
+    <record id="view_res_partner_form_inherit_wht" model="ir.ui.view">
+        <field name="name">res.partner.form.inherit.wht</field>
+        <field name="model">res.partner</field>
+        <field name="inherit_id" ref="base.view_partner_form"/>
+        <field name="arch" type="xml">
+            <sheet position="inside">
+                <group string="Withholding Tax">
+                    <field name="default_wht_id"/>
+                    <field name="tax_id"/>
+                    <field name="branch_no"/>
+                    <field name="partner_type"/>
+                </group>
+            </sheet>
+        </field>
+    </record>
+</odoo>

@@ -1,0 +1,268 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <!-- WHT Certificate Form View -->
+        <record id="account_wht_certificate_form" model="ir.ui.view">
+            <field name="name">account.wht.certificate.form</field>
+            <field name="model">account.wht.certificate</field>
+            <field name="arch" type="xml">
+                <form string="WHT Certificate">
+                    <header>
+                        <button name="action_recompute_from_bills" string="🔄 ดึงรายการใหม่จากบิล" type="object" class="btn-secondary" invisible="1" />
+                        <button name="action_confirm" string="✅ ยืนยันและออกเลขที่" type="object" class="btn-primary" invisible="1" />
+                        <button name="action_preview_50tawi" string="Preview" type="object" class="btn-info" />
+                        <button name="action_print_50tawi" string="Print Withholding Tax" type="object" class="btn-primary" invisible="state == 'draft'" />
+                        <button name="action_send_email" string="Send Withholding Tax" type="object" class="btn-secondary" invisible="state == 'draft'" />
+                        <button name="action_export_rd_txt" string="Export RD TXT" type="object" class="btn-secondary" invisible="state == 'draft'" />
+                        <field name="state" widget="statusbar" statusbar_visible="draft,done,cancel" />
+                    </header>
+                    <sheet>
+                        <div class="oe_button_box" name="button_box">
+                            <button name="action_view_bills" type="object" class="oe_stat_button" icon="fa-file-text-o" invisible="bill_count == 0">
+                                <field name="bill_count" string="บิลต้นทาง" widget="statinfo" />
+                            </button>
+                        </div>
+                        <div class="oe_title">
+                            <label string="WHT No." for="certificate_no" />
+                            <h1>
+                                <field name="certificate_no" readonly="1" />
+                            </h1>
+                        </div>
+                        <group>
+                            <group string="GENERAL INFORMATION">
+                                <field name="bill_count" invisible="1" />
+                                <field name="issue_date" />
+                                <field name="wht_type" />
+                                <field name="wht_pay_type" />
+                                <field name="income_type" />
+                                <field name="wht_reference" />
+                                <field name="payment_id" invisible="not payment_id" />
+                                <field name="move_ids" invisible="1" />
+                                <field name="company_id" groups="base.group_multi_company" />
+                            </group>
+                            <group string="AMOUNT INFORMATION">
+                                <field name="base_amount" />
+                                <field name="tax_amount" />
+                            </group>
+
+                        </group>
+                        <group>
+                            <group string="PAYER INFORMATION">
+                                <!-- using company_id as Payer -->
+                                <field name="company_id" string="Company Name" readonly="1" />
+                            </group>
+                            <group string="PAYEE INFORMATION">
+                                <field name="partner_id" string="Partner Name" />
+                                <field name="partner_taxid" />
+                                <field name="partner_address" />
+                            </group>
+                        </group>
+                        <notebook>
+                            <page string="WHT Detail Lines" name="wht_lines">
+                                <field name="line_ids">
+                                    <list editable="bottom">
+                                        <field name="invoice_move_id" string="From Bill" optional="show" />
+                                        <field name="income_type_id" />
+                                        <field name="income_type_text" column_invisible="True" />
+                                        <field name="name" />
+                                        <field name="pay_date" />
+                                        <field name="base_amount" sum="Total Base" />
+                                        <field name="tax_amount" sum="Total Tax" />
+                                    </list>
+                                </field>
+                            </page>
+                        </notebook>
+                    </sheet>
+                </form>
+            </field>
+        </record>
+
+        <!-- WHT Certificate Search View -->
+        <record id="account_wht_certificate_search" model="ir.ui.view">
+            <field name="name">account.wht.certificate.search</field>
+            <field name="model">account.wht.certificate</field>
+            <field name="arch" type="xml">
+                <search>
+                    <field name="certificate_no" />
+                    <field name="partner_id" />
+                    <field name="wht_reference" string="Reference" />
+                    <field name="move_ids" string="Bills/Invoices" />
+                    <field name="wht_type" string="WHT Type" />
+                    <separator />
+                    <filter name="filter_draft" string="Draft" domain="[('state','=','draft')]" />
+                    <filter name="filter_done" string="Done" domain="[('state','=','done')]" />
+                    <separator />
+                    <filter name="filter_pnd1" string="ภ.ง.ด.1" domain="[('wht_type','=','pnd1')]" />
+                    <filter name="filter_pnd1k" string="ภ.ง.ด.1ก" domain="[('wht_type','=','pnd1k')]" />
+                    <filter name="filter_pnd1_special" string="ภ.ง.ด.1 พิเศษ" domain="[('wht_type','=','pnd1_special')]" />
+                    <filter name="filter_pnd2" string="ภ.ง.ด.2" domain="[('wht_type','=','pnd2')]" />
+                    <filter name="filter_pnd2k" string="ภ.ง.ด.2ก" domain="[('wht_type','=','pnd2k')]" />
+                    <filter name="filter_pnd3" string="ภ.ง.ด.3" domain="[('wht_type','=','pnd3')]" />
+                    <filter name="filter_pnd3k" string="ภ.ง.ด.3ก" domain="[('wht_type','=','pnd3k')]" />
+                    <filter name="filter_pnd53" string="ภ.ง.ด.53" domain="[('wht_type','=','pnd53')]" />
+                    <separator />
+                    <filter name="filter_this_month" string="This Month" domain="[('issue_date','&gt;=', (context_today()).strftime('%Y-%m-01'))]" />
+                    <group expand="0" string="Group By">
+                        <filter name="group_partner" string="Partner" context="{'group_by': 'partner_id'}" />
+                        <filter name="group_date" string="Issue Date" context="{'group_by': 'issue_date:month'}" />
+                        <filter name="group_state" string="Status" context="{'group_by': 'state'}" />
+                        <filter name="group_wht_type" string="WHT Type" context="{'group_by': 'wht_type'}" />
+                    </group>
+                </search>
+
+            </field>
+        </record>
+
+        <!-- WHT Certificate Tree View -->
+        <record id="account_wht_certificate_tree" model="ir.ui.view">
+            <field name="name">account.wht.certificate.tree</field>
+            <field name="model">account.wht.certificate</field>
+            <field name="arch" type="xml">
+                <list string="WHT Certificates">
+                    <header>
+                        <button name="action_export_rd_txt" string="Export RD TXT" type="object" />
+                    </header>
+                    <field name="certificate_no" />
+                    <field name="issue_date" />
+                    <field name="wht_type" />
+                    <field name="wht_pay_type" optional="hide" />
+                    <field name="wht_reference" optional="show" />
+                    <field name="move_ids" widget="many2many_tags" optional="show" />
+                    <field name="payment_id" optional="show" />
+                    <field name="partner_id" />
+                    <field name="base_amount" />
+                    <field name="tax_amount" />
+                    <field name="income_type" optional="hide" />
+                    <field name="state" />
+                </list>
+
+            </field>
+        </record>
+        <!-- Action and Menu for WHT Certificate -->
+        <record id="action_account_wht_certificate" model="ir.actions.act_window">
+            <field name="name">WHT Certificates</field>
+            <field name="res_model">account.wht.certificate</field>
+            <field name="view_mode">list,form</field>
+            <field name="search_view_id" ref="account_wht_certificate_search" />
+            <field name="help" type="html">
+                <p class="o_view_nocontent_smiling_face">
+                    สร้างใบรับรองการหักภาษี ณ ที่จ่ายใหม่
+                </p>
+            </field>
+        </record>
+
+        <menuitem id="menu_account_wht_certificate" name="WHT Certificates" parent="account.menu_finance" action="action_account_wht_certificate" />
+        <!-- WHT Form View -->
+        <record id="account_wht_form" model="ir.ui.view">
+            <field name="name">account.wht.form</field>
+            <field name="model">account.wht</field>
+            <field name="arch" type="xml">
+                <form string="Withholding Tax">
+                    <sheet>
+                        <group>
+                            <group>
+                                <field name="name" />
+                                <field name="tax_code" />
+                                <field name="type_tax_use" />
+                                <field name="tax_application" />
+                                <field name="amount" />
+                            </group>
+                            <group>
+                                <field name="account_id" />
+                                <field name="refund_account_id" />
+                                <field name="sale_tax_id" invisible="type_tax_use != 'tax'" />
+                            </group>
+                        </group>
+                        <notebook>
+                            <page name="definition" string="Definition">
+                                <group>
+                                    <field name="income_type_id" />
+                                    <field name="description" string="Legacy Description" />
+                                </group>
+                            </page>
+                            <page name="advanced" string="Advanced Options">
+                                <group>
+                                    <group>
+                                        <field name="tax_group_id" />
+                                        <field name="company_id" groups="base.group_multi_company" />
+                                        <field name="active" widget="boolean_toggle" />
+                                    </group>
+                                </group>
+                            </page>
+                        </notebook>
+                    </sheet>
+                </form>
+            </field>
+        </record>
+
+        <record id="account_WHT.account_wht_tree" model="ir.ui.view">
+            <field name="name">account_wht account_wht_tree</field>
+            <field name="model">account.wht</field>
+            <field name="arch" type="xml">
+                <list string="Account WHT Tree" editable="bottom">
+                    <field name="name" string="Withholding Tax Name" />
+                    <field name="amount" string="Rate (%)" />
+                    <field name="income_type_id" string="Income Type" />
+                    <field name="description" string="Legacy Income Type" optional="hide"/>
+                    <field name="account_id" string="Receive WHT Account" />
+                    <field name="refund_account_id" string="Send WHT Account" />
+                    <field name="income_account_id" string="Income Account" />
+                    <field name="expense_account_id" string="Expense Account" />
+                    <field name="company_id" options="{'no_create': True}" groups="base.group_multi_company" />
+                    <field name="active" widget="boolean_toggle" />
+                </list>
+            </field>
+        </record>
+
+        <record id="account_WHT.account_wht_action" model="ir.actions.act_window">
+            <field name="name">Withholding Tax</field>
+            <field name="res_model">account.wht</field>
+            <field name="view_mode">list,form</field>
+            <field name="view_id" ref="account_WHT.account_wht_tree" />
+        </record>
+
+        <!-- WHT Income Type Views -->
+        <record id="wht_income_type_tree" model="ir.ui.view">
+            <field name="name">wht.income.type.tree</field>
+            <field name="model">wht.income.type</field>
+            <field name="arch" type="xml">
+                <list string="WHT Income Types" editable="bottom">
+                    <field name="sequence" widget="handle"/>
+                    <field name="code"/>
+                    <field name="name"/>
+                    <field name="pnd_type"/>
+                    <field name="description" optional="hide"/>
+                    <field name="total_base" string="ยอดเงินได้สะสม (บิล Done)" sum="Total Base"/>
+                    <field name="total_tax" string="ยอดภาษีสะสม (บิล Done)" sum="Total Tax"/>
+                    <field name="active" widget="boolean_toggle"/>
+                </list>
+            </field>
+        </record>
+
+        <record id="wht_income_type_search" model="ir.ui.view">
+            <field name="name">wht.income.type.search</field>
+            <field name="model">wht.income.type</field>
+            <field name="arch" type="xml">
+                <search string="Search Income Type">
+                    <field name="code"/>
+                    <field name="name"/>
+                    <filter string="Archived" name="inactive" domain="[('active','=',False)]"/>
+                </search>
+            </field>
+        </record>
+
+        <record id="action_wht_income_type" model="ir.actions.act_window">
+            <field name="name">Income Types</field>
+            <field name="res_model">wht.income.type</field>
+            <field name="view_mode">list</field>
+            <field name="help" type="html">
+                <p class="o_view_nocontent_smiling_face">
+                สร้างประเภทเงินได้หัก ณ ที่จ่ายใหม่
+                </p>
+            </field>
+        </record>
+
+        <menuitem id="account_WHT.account_wht" action="account_WHT.account_wht_action" parent="account.account_invoicing_menu" sequence="3" />
+        <menuitem id="menu_wht_income_type" action="action_wht_income_type" parent="account.account_invoicing_menu" sequence="4" />
+    </data>
+</odoo>

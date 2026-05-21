@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="account_payment_register_form" model="ir.ui.view">
+        <field name="name">account.payment.register.form.inherit.wht</field>
+        <field name="model">account.payment.register</field>
+        <field name="inherit_id" ref="account.view_account_payment_register_form" />
+        <field name="arch" type="xml">
+            <!-- Hide existing fields to rebuild the layout -->
+            <xpath expr="//field[@name='journal_id']" position="attributes">
+                <attribute name="invisible">1</attribute>
+            </xpath>
+            <xpath expr="//field[@name='payment_method_line_id']" position="attributes">
+                <attribute name="invisible">1</attribute>
+            </xpath>
+            <xpath expr="//field[@name='partner_bank_id']" position="attributes">
+                <attribute name="invisible">1</attribute>
+            </xpath>
+            <xpath expr="//field[@name='amount']" position="attributes">
+                <attribute name="invisible">1</attribute>
+            </xpath>
+            <xpath expr="//field[@name='payment_date']" position="attributes">
+                <attribute name="invisible">1</attribute>
+            </xpath>
+            <xpath expr="//field[@name='communication']" position="attributes">
+                <attribute name="invisible">1</attribute>
+            </xpath>
+            <xpath expr="//group[1]" position="attributes">
+                <attribute name="invisible">1</attribute>
+            </xpath>
+            <!-- New Layout matching screenshot -->
+            <xpath expr="//group[1]" position="after">
+                <group name="wht_main_group">
+                    <group name="wht_left_group">
+                        <field name="journal_id" options="{'no_open': True, 'no_create': True}" help="" />
+                        <field name="payment_method_line_id" widget="radio" options="{'horizontal': True}" help="" />
+                        <field name="partner_bank_id" invisible="not show_partner_bank_account" help="" />
+                    </group>
+                    <group name="wht_right_group">
+                        <field name="sub_amount" widget="monetary" options="{'currency_field': 'currency_id'}" readonly="1" force_save="1" help="" />
+                        <field name="adjust_wht" help="" />
+                        <field name="is_wht" help="" />
+
+                        <field name="wht_type" invisible="not is_wht" force_save="1" help="" />
+                        <field name="wht_pay_type" invisible="not is_wht" force_save="1" help="" widget="selection"/>
+                    </group>
+                </group>
+                <!-- Alert Box -->
+                <div class="alert alert-warning" role="alert" invisible="not is_wht" style="margin-top: 5px; margin-bottom: 5px; font-size: 0.9em;">In case of Early Payment Discount or Partial Payment or Installment Terms, 
+                    Please recheck original amount of withholding tax manually.</div>
+                <!-- Warning Box for multiple bills -->
+                <div class="alert alert-warning" role="alert" invisible="not wht_warning" style="margin-top: 5px; margin-bottom: 5px; font-size: 0.9em;">
+                    <field name="wht_warning" nolabel="1"/>
+                </div>
+                <!-- WHT Lines Table (Clean List) -->
+                <div invisible="not is_wht" style="margin-top: 10px; border-top: 1px solid #dee2e6;">
+                    <field name="wht_line_ids" nolabel="1" readonly="not is_wht">
+                        <list editable="bottom">
+                            <field name="wht_id" string="Withholding Tax" options="{'no_create': True}" />
+                            <field name="account_id" string="Account" options="{'no_create': True, 'no_open': True}" />
+                            <field name="name" string="Label" />
+                            <field name="base_amount" string="Base Amount" widget="monetary" force_save="1" />
+                            <field name="amount" string="WHT Amount" widget="monetary" force_save="1" />
+                            <field name="currency_id" column_invisible="True" />
+                        </list>
+                    </field>
+                </div>
+                <!-- Bottom Summary Section -->
+                <group name="wht_summary_group">
+                    <group />
+                    <group name="wht_totals" class="oe_subtotal_footer oe_right">
+                        <field name="wht_amount" string="Withholding Tax" widget="monetary" invisible="not is_wht" readonly="1" force_save="1" help="" />
+                        <field name="after_wh_payment_amount" string="Net Paid" widget="monetary" readonly="1" force_save="1" class="oe_subtotal_footer_separator" help="" />
+                        <field name="payment_date" help="" />
+                        <field name="communication" string="Memo" help="" />
+                        <!-- Carry original amount for Odoo internal logic -->
+                        <field name="amount" invisible="1" force_save="1" />
+                    </group>
+                </group>
+            </xpath>
+        </field>
+    </record>
+</odoo>

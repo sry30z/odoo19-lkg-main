@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+        <record id="seq_wht_certificate" model="ir.sequence">
+            <field name="name">WHT Certificate</field>
+            <field name="code">account.wht.certificate</field>
+            <field name="prefix">WHT/%(year)s/</field>
+            <field name="padding">4</field>
+            <field name="company_id" eval="False"/>
+        </record>
+        <record id="seq_wht_record" model="ir.sequence">
+            <field name="name">WHT Control Record</field>
+            <field name="code">account.wht.record</field>
+            <field name="prefix">WHT-REC/%(year)s/</field>
+            <field name="padding">4</field>
+            <field name="company_id" eval="False"/>
+        </record>
+    </data>
+</odoo>

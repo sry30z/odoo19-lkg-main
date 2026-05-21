@@ -1,0 +1,3 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_wht_tax,wht.tax,model_wht_tax,base.group_user,1,1,1,1
+access_wht_certificate_wizard,wht.certificate.wizard,model_wht_certificate_wizard,base.group_user,1,1,1,1

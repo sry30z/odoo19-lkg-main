@@ -1,0 +1,22 @@
+<odoo>
+    <record id="wht_tax_3_percent" model="wht.tax">
+        <field name="name">บริการทั่วไป 3%</field>
+        <field name="code">3P</field>
+        <field name="rate">3.0</field>
+        <field name="type">service</field>
+        <field name="income_type">40(2)</field>
+        <field name="partner_type">vendor</field>
+        <field name="account_id" ref="account.data_account_type_current_liabilities"/>
+        <field name="company_id" eval="1"/>
+    </record>
+    <record id="wht_tax_5_percent" model="wht.tax">
+        <field name="name">ค่าเช่า 5%</field>
+        <field name="code">5R</field>
+        <field name="rate">5.0</field>
+        <field name="type">rent</field>
+        <field name="income_type">40(5)</field>
+        <field name="partner_type">vendor</field>
+        <field name="account_id" ref="account.data_account_type_current_liabilities"/>
+        <field name="company_id" eval="1"/>
+    </record>
+</odoo>

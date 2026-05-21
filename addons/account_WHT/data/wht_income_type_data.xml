@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+        <record id="wht_income_type_1" model="wht.income.type">
+            <field name="code">1</field>
+            <field name="name">เงินเดือน ค่าจ้าง เบี้ยเลี้ยง โบนัส ฯลฯ ตามมาตรา 40 (1)</field>
+            <field name="sequence">10</field>
+        </record>
+        <record id="wht_income_type_2" model="wht.income.type">
+            <field name="code">2</field>
+            <field name="name">ค่าธรรมเนียม ค่านายหน้า ฯลฯ ตามมาตรา 40 (2)</field>
+            <field name="sequence">20</field>
+        </record>
+        <record id="wht_income_type_3" model="wht.income.type">
+            <field name="code">3</field>
+            <field name="name">ค่าแห่งลิขสิทธิ์ ฯลฯ ตามมาตรา 40 (3)</field>
+            <field name="sequence">30</field>
+        </record>
+        <record id="wht_income_type_4" model="wht.income.type">
+            <field name="code">4</field>
+            <field name="name">ดอกเบี้ย เงินปันผล ฯลฯ ตามมาตรา 40 (4)</field>
+            <field name="sequence">40</field>
+        </record>
+        <record id="wht_income_type_5" model="wht.income.type">
+            <field name="code">5</field>
+            <field name="name">ค่าจ้างทำของ ค่าบริการ ค่าเช่า ค่าขนส่ง ฯลฯ ตามมาตรา 40 (5)</field>
+            <field name="sequence">50</field>
+        </record>
+        <record id="wht_income_type_6" model="wht.income.type">
+            <field name="code">6</field>
+            <field name="name">วิชาชีพอิสระ ตามมาตรา 40 (6)</field>
+            <field name="sequence">60</field>
+        </record>
+        <record id="wht_income_type_7" model="wht.income.type">
+            <field name="code">7</field>
+            <field name="name">รับเหมา ตามมาตรา 40 (7)</field>
+            <field name="sequence">70</field>
+        </record>
+        <record id="wht_income_type_8" model="wht.income.type">
+            <field name="code">8</field>
+            <field name="name">ธุรกิจ การพาณิชย์ เกษตร อุตสาหกรรม ตามมาตรา 40 (8)</field>
+            <field name="sequence">80</field>
+        </record>
+        <record id="wht_income_type_9" model="wht.income.type">
+            <field name="code">9</field>
+            <field name="name">อื่น ๆ</field>
+            <field name="sequence">90</field>
+        </record>
+    </data>
+</odoo>

@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <!-- Paperformat -->
+        <record id="paperformat_custom_payment_receipt" model="report.paperformat">
+            <field name="name">Payment Receipt A4</field>
+            <field name="default" eval="True"/>
+            <field name="format">A4</field>
+            <field name="page_height">0</field>
+            <field name="page_width">0</field>
+            <field name="orientation">Portrait</field>
+            <field name="margin_top">30</field>
+            <field name="margin_bottom">60</field>
+            <field name="margin_left">15</field>
+            <field name="margin_right">15</field>
+            <field name="header_line" eval="False"/>
+            <field name="header_spacing">25</field>
+            <field name="dpi">96</field>
+        </record>
+
+        <!-- Override Report Action from bm_tax_invoice_receipt -->
+        <record id="bm_tax_invoice_receipt.report_payment_receipt" model="ir.actions.report">
+            <field name="report_name">account_WHT.report_payment_receipt_custom_template</field>
+            <field name="report_file">account_WHT.report_payment_receipt_custom_template</field>
+            <field name="print_report_name">'Payment_Receipt_%s' % (object.name or '')</field>
+            <field name="paperformat_id" ref="account_WHT.paperformat_custom_payment_receipt"/>
+        </record>
+    </data>
+</odoo>

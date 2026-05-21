@@ -1,0 +1,17 @@
+<odoo>
+    <record id="view_wht_certificate_wizard_form" model="ir.ui.view">
+        <field name="name">wht.certificate.wizard.form</field>
+        <field name="model">wht.certificate.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Generate WHT Certificates">
+                <group>
+                    <field name="payment_ids" widget="many2many_tags"/>
+                </group>
+                <footer>
+                    <button string="Generate" type="object" name="generate_certificates" class="btn-primary"/>
+                    <button string="Cancel" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+</odoo>

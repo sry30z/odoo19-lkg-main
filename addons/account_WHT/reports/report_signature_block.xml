@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ════════════════════════════════════════════════════════
+         REUSABLE SIGNATURE BLOCK
+         ─────────────────────────────────────────────────────────
+         วิธีใช้ในรายงานทั่วไป (Invoice / PO / SO):
+             <t t-set="sig_company" t-value="o.company_id"/>
+             <t t-set="sig_show_name" t-value="True"/>
+             <t t-call="account_WHT.report_signature_block"/>
+
+         วิธีใช้ใน WHT 50 Tawi (absolute position, ไม่แสดงชื่อ):
+             <t t-set="sig_company" t-value="doc.company_id"/>
+             <t t-set="sig_show_name" t-value="False"/>
+             <t t-call="account_WHT.report_signature_block"/>
+
+         Variables ที่รับ:
+             sig_company   → res.company record (required)
+             sig_show_name → bool: True = แสดงชื่อ+ตำแหน่ง, False = รูปอย่างเดียว
+    ═══════════════════════════════════════════════════════════ -->
+    <template id="report_signature_block">
+        <div style="
+            width: 100%;
+            text-align: inherit;
+            font-family: 'TH Sarabun New', 'Garuda', Tahoma, sans-serif;
+            font-size: 14px;
+            line-height: 1.6;
+            letter-spacing: 0;
+            color: #000000;
+            page-break-inside: avoid;
+        ">
+            <!-- ── รูปลายเซ็น ── -->
+            <table style="width: 100%; border-collapse: collapse;">
+                <tr>
+                    <td style="height: 25mm; vertical-align: bottom; text-align: inherit; padding: 0;">
+                        <t t-if="sig_company and sig_company.signature_image">
+                            <img t-att-src="image_data_uri(sig_company.signature_image)" style="max-height: 25mm; max-width: 100%; display: block; margin: 0 auto;" alt="Signature"/>
+                        </t>
+                        <t t-else="">
+                            <!-- Fallback: พื้นที่ว่างกันขยับ layout -->
+                            <div style="height: 25mm;"></div>
+                        </t>
+                    </td>
+                </tr>
+            </table>
+
+            <!-- ── เส้นใต้ลายเซ็น ── -->
+            <div style="
+                border-top: 0.3mm solid #000000;
+                width: 175px;
+                margin-top: 2mm;
+                display: inline-block;
+            ">            </div>
+
+            <!-- ── ชื่อผู้ลงนาม (แสดงเมื่อ sig_show_name=True เท่านั้น) ── -->
+            <t t-if="sig_show_name and sig_company and sig_company.signature_name">
+                <div style="margin-top: 1.5mm; font-size: 14px;">
+                    (                    <span t-esc="sig_company.signature_name"/>
+)
+                </div>
+            </t>
+        </div>
+    </template>
+
+</odoo>

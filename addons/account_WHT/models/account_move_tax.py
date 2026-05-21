@@ -1,0 +1,56 @@
+# -*- coding: utf-8 -*-
+from odoo import fields, models, api
+import logging
+
+_logger = logging.getLogger(__name__)
+
+
+class AccountMoveTax(models.Model):
+    _name = "account.move.tax"
+    _description = "Invoice Tax"
+    _order = 'sequence'
+    _rec_name = 'name'
+
+    @api.depends('move_id.invoice_line_ids')
+    def _compute_base_amount(self):
+        for tax in self:
+            tax.base = 0.0
+            if tax.tax_id and tax.move_id:
+                matching_lines = tax.move_id.invoice_line_ids.filtered(lambda l: tax.tax_id in l.tax_ids)
+                tax.base = sum(matching_lines.mapped('price_subtotal'))
+
+    name = fields.Char(string='Tax Description', required=True)
+    tax_id = fields.Many2one('account.tax', string='Tax', ondelete='restrict')
+    move_id = fields.Many2one(
+        'account.move',
+        string='Invoice',
+        ondelete='cascade',
+        index=True)
+
+    account_id = fields.Many2one(
+        'account.account',
+        string='Tax Account',
+        required=True)
+
+    analytic_account_id = fields.Many2one('account.analytic.account', string='Analytic account')
+    amount = fields.Monetary()
+    amount_rounding = fields.Monetary()
+    amount_total = fields.Monetary(string="Total Amount", compute='_compute_amount_total')
+    manual = fields.Boolean(default=True)
+    sequence = fields.Integer(
+        help="Gives the sequence order when displaying a list of invoice tax."
+    )
+    company_id = fields.Many2one(
+        'res.company', string='Company',
+        store=True, readonly=True)  # related='account_id.company_id',
+
+    currency_id = fields.Many2one(
+        'res.currency', related='move_id.currency_id',
+        store=True, readonly=True)
+
+    base = fields.Monetary(string='Base', compute='_compute_base_amount', store=True)
+
+    @api.depends('amount', 'amount_rounding')
+    def _compute_amount_total(self):
+        for tax_line in self:
+            tax_line.amount_total = tax_line.amount + tax_line.amount_rounding

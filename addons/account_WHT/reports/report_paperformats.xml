@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Generic Compact Paperformat for all Thai reports -->
+    <record id="paperformat_thai_compact" model="report.paperformat">
+        <field name="name">Thai Compact A4</field>
+        <field name="default" eval="False"/>
+        <field name="format">A4</field>
+        <field name="orientation">Portrait</field>
+        <field name="margin_top">20</field>        <!-- เพิ่มพื้นที่ด้านบนเพื่อให้ Header ไม่ติดขอบ -->
+        <field name="margin_bottom">60</field>        <!-- จองพื้นที่ด้านล่าง 6cm สำหรับลายเซ็น -->
+        <field name="margin_left">15</field>
+        <field name="margin_right">15</field>
+        <field name="header_line" eval="False"/>
+        <field name="header_spacing">25</field>
+        <field name="dpi">96</field>
+        <field name="disable_shrinking" eval="False"/>
+    </record>
+
+    <!-- Update Sale Order Report to use this paperformat -->
+    <record id="sale.action_report_saleorder" model="ir.actions.report">
+        <field name="paperformat_id" ref="account_WHT.paperformat_thai_compact"/>
+    </record>
+
+    <!-- Update Purchase Order Report to use this paperformat -->
+    <record id="purchase.action_report_purchase_order" model="ir.actions.report">
+        <field name="paperformat_id" ref="account_WHT.paperformat_thai_compact"/>
+    </record>
+
+    <!-- Update RFQ Report to use this paperformat -->
+    <record id="purchase.report_purchase_quotation" model="ir.actions.report">
+        <field name="paperformat_id" ref="account_WHT.paperformat_thai_compact"/>
+    </record>
+
+    <!-- Update Invoice/Bill Report to use this paperformat -->
+    <record id="account.account_invoices" model="ir.actions.report">
+        <field name="paperformat_id" ref="account_WHT.paperformat_thai_compact"/>
+    </record>
+</odoo>

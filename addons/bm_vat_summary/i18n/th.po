@@ -1,0 +1,210 @@
+# Translation of Odoo Server.
+# This file contains the translation of the following modules:
+# 	* bm_vat_summary
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: Odoo Server 18.0-20241007\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2024-12-03 17:21+0000\n"
+"PO-Revision-Date: 2024-12-03 17:21+0000\n"
+"Last-Translator: \n"
+"Language-Team: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: \n"
+"Plural-Forms: \n"
+
+#. module: bm_vat_summary
+#: model:ir.model.fields,field_description:bm_vat_summary.field_account_move_line__all_tax_ids
+msgid "All Tax Name"
+msgstr ""
+
+#. module: bm_vat_summary
+#: model:ir.model.fields,field_description:bm_vat_summary.field_account_move_line__ex06_tax_base_amount
+#: model_terms:ir.ui.view,arch_db:bm_vat_summary.view_purchase_vat_list
+#: model_terms:ir.ui.view,arch_db:bm_vat_summary.view_sales_vat_list
+msgid "Base Amount"
+msgstr "ยอดฐาน"
+
+#. module: bm_vat_summary
+#: model_terms:ir.ui.view,arch_db:bm_vat_summary.view_purchase_vat_list
+msgid "Bill No."
+msgstr "เลขบิล"
+
+#. module: bm_vat_summary
+#: model:ir.model.fields,field_description:bm_vat_summary.field_account_move_line__ex11_company_id
+#: model_terms:ir.ui.view,arch_db:bm_vat_summary.view_purchase_vat_search
+#: model_terms:ir.ui.view,arch_db:bm_vat_summary.view_sales_vat_search
+msgid "Company"
+msgstr "บริษัท"
+
+#. module: bm_vat_summary
+#: model:ir.model.fields,field_description:bm_vat_summary.field_account_move_line__ex10_currency_id
+msgid "Currency"
+msgstr "สกุลเงิน"
+
+#. module: bm_vat_summary
+#: model_terms:ir.ui.view,arch_db:bm_vat_summary.view_purchase_vat_search
+#: model_terms:ir.ui.view,arch_db:bm_vat_summary.view_sales_vat_search
+msgid "Current Month"
+msgstr "เดือนปัจจุบัน"
+
+#. module: bm_vat_summary
+#: model_terms:ir.ui.view,arch_db:bm_vat_summary.view_sales_vat_list
+msgid "Customer Name"
+msgstr "ชื่อลูกค้า"
+
+#. module: bm_vat_summary
+#: model_terms:ir.ui.view,arch_db:bm_vat_summary.view_sales_vat_list
+msgid "Customer Reference"
+msgstr "เลขอ้างอิงลูกค้า"
+
+#. module: bm_vat_summary
+#: model_terms:ir.ui.view,arch_db:bm_vat_summary.view_sales_vat_list
+msgid "Customer Tax ID"
+msgstr "เลขที่ผู้เสียภาษีลูกค้า"
+
+#. module: bm_vat_summary
+#: model_terms:ir.ui.view,arch_db:bm_vat_summary.view_purchase_vat_search
+#: model_terms:ir.ui.view,arch_db:bm_vat_summary.view_sales_vat_search
+msgid "Group By"
+msgstr "จัดกลุ่มโดย"
+
+#. module: bm_vat_summary
+#: model_terms:ir.ui.view,arch_db:bm_vat_summary.view_purchase_vat_search
+msgid "Invoice Date"
+msgstr "วันที่ Invoice"
+
+#. module: bm_vat_summary
+#: model_terms:ir.ui.view,arch_db:bm_vat_summary.view_sales_vat_list
+msgid "Invoice No."
+msgstr "เลขที่ Invoice"
+
+#. module: bm_vat_summary
+#: model:ir.model,name:bm_vat_summary.model_account_move
+msgid "Journal Entry"
+msgstr "รายการสมุดรายวัน"
+
+#. module: bm_vat_summary
+#: model:ir.model,name:bm_vat_summary.model_account_move_line
+msgid "Journal Item"
+msgstr "รายการสมุดรายวัน"
+
+#. module: bm_vat_summary
+#: model_terms:ir.ui.view,arch_db:bm_vat_summary.view_purchase_vat_search
+#: model_terms:ir.ui.view,arch_db:bm_vat_summary.view_sales_vat_search
+msgid "Last Month"
+msgstr "เดือนที่แล้ว"
+
+#. module: bm_vat_summary
+#: model_terms:ir.actions.act_window,help:bm_vat_summary.action_purchase_vat
+msgid "List of Purchase VAT"
+msgstr "รายการภาษีซื้อ"
+
+#. module: bm_vat_summary
+#: model_terms:ir.actions.act_window,help:bm_vat_summary.action_sales_vat
+msgid "List of Sales VAT"
+msgstr "รายการภาษีขาย"
+
+#. module: bm_vat_summary
+#: model:ir.model.fields,field_description:bm_vat_summary.field_account_move_line__ex03_invoice_partner_display_name
+#: model:ir.model.fields,field_description:bm_vat_summary.field_account_move_line__invoice_partner_display_name
+#: model_terms:ir.ui.view,arch_db:bm_vat_summary.view_purchase_vat_search
+#: model_terms:ir.ui.view,arch_db:bm_vat_summary.view_sales_vat_search
+msgid "Partner Name"
+msgstr "ชื่อคู่ค้า"
+
+#. module: bm_vat_summary
+#: model:ir.model.fields,field_description:bm_vat_summary.field_account_move_line__ex05_partner_ref
+#: model:ir.model.fields,field_description:bm_vat_summary.field_account_move_line__partner_ref
+msgid "Partner Reference Doc No."
+msgstr "เลขอ้างอิงคู่ค้า"
+
+#. module: bm_vat_summary
+#: model:ir.model.fields,field_description:bm_vat_summary.field_account_move_line__ex04_partner_vat
+#: model:ir.model.fields,field_description:bm_vat_summary.field_account_move_line__partner_vat
+msgid "Partner VAT"
+msgstr "เลขที่ผู้เสียภาษีคู่ค้า"
+
+#. module: bm_vat_summary
+#: model:ir.actions.act_window,name:bm_vat_summary.action_purchase_vat
+#: model:ir.ui.menu,name:bm_vat_summary.menu_purchase_vat_report
+#: model_terms:ir.ui.view,arch_db:bm_vat_summary.view_purchase_vat_list
+#: model_terms:ir.ui.view,arch_db:bm_vat_summary.view_purchase_vat_search
+msgid "Purchase VAT"
+msgstr "ภาษีซื้อ"
+
+#. module: bm_vat_summary
+#: model:ir.actions.act_window,name:bm_vat_summary.action_sales_vat
+#: model:ir.ui.menu,name:bm_vat_summary.menu_sale_vat_report
+#: model_terms:ir.ui.view,arch_db:bm_vat_summary.view_sales_vat_list
+#: model_terms:ir.ui.view,arch_db:bm_vat_summary.view_sales_vat_search
+msgid "Sales VAT"
+msgstr "ภาษีขาย"
+
+#. module: bm_vat_summary
+#: model:ir.model.fields,field_description:bm_vat_summary.field_account_move_line__ex09_origin_doc_id
+#: model:ir.model.fields,field_description:bm_vat_summary.field_account_move_line__origin_doc_id
+msgid "System Doc No."
+msgstr "เลขที่เอสการในระบบ"
+
+#. module: bm_vat_summary
+#: model:ir.model.fields,field_description:bm_vat_summary.field_account_move_line__ex02_date
+#: model_terms:ir.ui.view,arch_db:bm_vat_summary.view_purchase_vat_list
+#: model_terms:ir.ui.view,arch_db:bm_vat_summary.view_sales_vat_list
+msgid "Tax Date"
+msgstr "วันที่ภาษี"
+
+#. module: bm_vat_summary
+#: model:ir.model.fields,field_description:bm_vat_summary.field_account_move_line__ex01_vat_summary_name
+#: model:ir.model.fields,field_description:bm_vat_summary.field_account_move_line__vat_summary_name
+#: model_terms:ir.ui.view,arch_db:bm_vat_summary.view_purchase_vat_list
+#: model_terms:ir.ui.view,arch_db:bm_vat_summary.view_sales_vat_list
+msgid "Tax Invoice No."
+msgstr "เลขที่ใบกำกับภาษี"
+
+#. module: bm_vat_summary
+#: model:ir.model.fields,field_description:bm_vat_summary.field_account_move_line__ex08_all_tax_ids
+#: model_terms:ir.ui.view,arch_db:bm_vat_summary.view_purchase_vat_list
+#: model_terms:ir.ui.view,arch_db:bm_vat_summary.view_sales_vat_list
+msgid "Tax Name"
+msgstr "ชื่อภาษี"
+
+#. module: bm_vat_summary
+#: model:ir.model.fields,field_description:bm_vat_summary.field_account_move_line__ex07_vat_amount
+#: model:ir.model.fields,field_description:bm_vat_summary.field_account_move_line__vat_amount
+#: model_terms:ir.ui.view,arch_db:bm_vat_summary.view_purchase_vat_list
+#: model_terms:ir.ui.view,arch_db:bm_vat_summary.view_sales_vat_list
+msgid "VAT Amount"
+msgstr "ยอดภาษี"
+
+#. module: bm_vat_summary
+#: model_terms:ir.ui.view,arch_db:bm_vat_summary.view_sales_vat_search
+msgid "VAT Date"
+msgstr "วันที่ภาษีมูลค่าเพิ่ม"
+
+#. module: bm_vat_summary
+#: model:ir.model.fields,field_description:bm_vat_summary.field_account_move_line__vat_summary_type
+msgid "VAT Type"
+msgstr "ประเภทภาษีมูลค่าเพิ่ม"
+
+#. module: bm_vat_summary
+#: model:ir.ui.menu,name:bm_vat_summary.menu_vat_report
+msgid "Value-Added Tax"
+msgstr "ภาษีมูลค่าเพิ่ม"
+
+#. module: bm_vat_summary
+#: model_terms:ir.ui.view,arch_db:bm_vat_summary.view_purchase_vat_list
+msgid "Vendor Name"
+msgstr "ชื่อคู่ค้า"
+
+#. module: bm_vat_summary
+#: model_terms:ir.ui.view,arch_db:bm_vat_summary.view_purchase_vat_list
+msgid "Vendor Reference"
+msgstr "เลขอ้างอิงคู่ค้า"
+
+#. module: bm_vat_summary
+#: model_terms:ir.ui.view,arch_db:bm_vat_summary.view_purchase_vat_list
+msgid "Vendor Tax ID"
+msgstr "เลขที่ผู้เสียภาษีคู่ค้า"

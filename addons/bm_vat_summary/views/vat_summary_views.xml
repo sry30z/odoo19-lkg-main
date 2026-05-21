@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- # -*- coding: utf-8 -*-
+# See LICENSE file for full licensing details.
+# See COPYRIGHT file for full copyright details.
+# Developed by Bizmate - Unbox Solutions Co., Ltd. -->
+
+<odoo>
+    <data>
+
+        <!-- Purchase VAT -->
+        <record id="view_purchase_vat_search" model="ir.ui.view">
+            <field name="name">view.purchase.vat.search</field>
+            <field name="model">account.move.line</field>
+            <field name="arch" type="xml">
+                <search string="Purchase VAT">
+                    <field name="name"/>
+                    <filter string="Current Month" name="current_month" domain="[('date','&lt;',(context_today()+relativedelta(months=1)).strftime('%%Y-%%m-01')), ('date','&gt;=',time.strftime('%%Y-%%m-01'))]"/>
+                    <filter string="Last Month" name="last_month" domain="[('date','&gt;=',(context_today()-relativedelta(months=1)).strftime('%%Y-%%m-01')),('date','&lt;',time.strftime('%%Y-%%m-01'))]"/>
+                    <group string="Group By">
+                        <filter name="groupby_date" string="Invoice Date" context="{'group_by': 'date'}"/>
+                        <filter name="groupby_invoice_partner_display_name" string="Partner Name" context="{'group_by': 'invoice_partner_display_name'}"/>
+                        <filter name="groupby_company" string="Company" context="{'group_by': 'company_id'}"/>
+                    </group>
+                </search>
+            </field>
+        </record>
+
+        <record id="view_purchase_vat_list" model="ir.ui.view">
+            <field name="name">view.purchase.vat.list</field>
+            <field name="model">account.move.line</field>
+            <field name="arch" type="xml">
+                <list create="false" delete="false" string="Purchase VAT" default_order="create_date desc" default_group_by="date:month" expand="1">
+                    <field name="vat_summary_name" string="Tax Invoice No."/>
+                    <field name="date" string="Tax Date"/>
+                    <field name="invoice_partner_display_name" string="Vendor Name"/>
+                    <field name="partner_vat"  string="Vendor Tax ID"/>
+                    <field name="partner_ref" string="Vendor Reference"/>
+                    <field name="tax_base_amount" string="Base Amount" />
+                    <field name="vat_amount" string="VAT Amount"/>
+                    <field name="all_tax_ids" widget="many2many_tags" string="Tax Name"/>
+                    <field name="origin_doc_id" string="Bill No."/>
+                    <field name="currency_id" />
+                    <field name="company_id" groups="base.group_multi_company" />
+                </list>
+            </field>
+        </record>
+
+        <record id="action_purchase_vat" model="ir.actions.act_window">
+            <field name="name">Purchase VAT</field>
+            <field name="res_model">account.move.line</field>
+            <field name="view_id" ref="view_purchase_vat_list"/>
+            <field name="search_view_id" ref="view_purchase_vat_search" />
+            <field name="view_mode">list,form</field>
+            <field name="domain">[('vat_summary_type', '=', 'Purchase')]</field>
+            <field name="context">{'search_default_current_month': 1}</field>
+            <field name="help" type="html">
+                <p class="o_view_nocontent_smiling_face">
+                    List of Purchase VAT
+                </p>
+            </field>
+        </record>
+
+        <!-- Sales VAT -->
+        <record id="view_sales_vat_search" model="ir.ui.view">
+            <field name="name">view.sales.vat.search</field>
+            <field name="model">account.move.line</field>
+            <field name="arch" type="xml">
+                <search string="Sales VAT">
+                    <field name="name"/>
+                    <filter string="Current Month" name="current_month" domain="[('date','&lt;',(context_today()+relativedelta(months=1)).strftime('%%Y-%%m-01')), ('date','&gt;=',time.strftime('%%Y-%%m-01'))]"/>
+                    <filter string="Last Month" name="last_month" domain="[('date','&gt;=',(context_today()-relativedelta(months=1)).strftime('%%Y-%%m-01')),('date','&lt;',time.strftime('%%Y-%%m-01'))]"/>
+                    <group string="Group By">
+                        <filter name="groupby_date" string="VAT Date" context="{'group_by': 'date'}"/>
+                        <filter name="groupby_invoice_partner_display_name" string="Partner Name" context="{'group_by': 'invoice_partner_display_name'}"/>
+                        <filter name="groupby_company" string="Company" context="{'group_by': 'company_id'}"/>
+                    </group>
+                </search>
+            </field>
+        </record>
+
+        <record id="view_sales_vat_list" model="ir.ui.view">
+            <field name="name">view.sales.vat.list</field>
+            <field name="model">account.move.line</field>
+            <field name="arch" type="xml">
+                <list create="false" delete="false" string="Sales VAT" default_order="create_date desc" default_group_by="date:month" expand="1">
+                    <field name="vat_summary_name" string="Tax Invoice No."/>
+                    <field name="date" string="Tax Date" />
+                    <field name="invoice_partner_display_name" string="Customer Name"/>
+                    <field name="partner_vat" string="Customer Tax ID"/>
+                    <field name="partner_ref" string="Customer Reference"/>
+                    <field name="tax_base_amount" string="Base Amount" />
+                    <field name="vat_amount" string="VAT Amount"/>
+                    <field name="all_tax_ids" widget="many2many_tags" string="Tax Name"/>
+                    <field name="origin_doc_id" string="Invoice No."/>
+                    <field name="currency_id" />
+                    <field name="company_id" groups="base.group_multi_company" />
+                </list>
+            </field>
+        </record>
+
+        <record id="action_sales_vat" model="ir.actions.act_window">
+            <field name="name">Sales VAT</field>
+            <field name="res_model">account.move.line</field>
+            <field name="view_id" ref="view_sales_vat_list"/>
+            <field name="search_view_id" ref="view_sales_vat_search" />
+            <field name="view_mode">list,form</field>
+            <field name="domain">[('vat_summary_type', '=', 'Sales')]</field>
+            <field name="context">{'search_default_current_month': 1}</field>
+            <field name="help" type="html">
+                <p class="o_view_nocontent_smiling_face">
+                    List of Sales VAT
+                </p>
+            </field>
+        </record>
+
+        <!-- Menu Items -->
+        <menuitem id="menu_vat_report" name="Value-Added Tax" sequence="20" parent="account.menu_finance_reports" groups="account.group_account_invoice" />
+        <menuitem id="menu_purchase_vat_report" name="Purchase VAT" sequence="21" parent="menu_vat_report" action="bm_vat_summary.action_purchase_vat" />
+        <menuitem id="menu_sale_vat_report" name="Sales VAT" sequence="22" parent="menu_vat_report" action="bm_vat_summary.action_sales_vat" />
+
+    </data>
+</odoo>

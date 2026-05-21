@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_company_form_inherit_report_theme" model="ir.ui.view">
+        <field name="name">res.company.form.inherit.report.theme</field>
+        <field name="model">res.company</field>
+        <field name="inherit_id" ref="base.view_company_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//notebook" position="inside">
+                <page string="Report Theme">
+                    <group>
+                        <group>
+                            <field name="report_primary_color" widget="color"/>
+                            <field name="report_secondary_color" widget="color"/>
+                            <field name="report_alt_row_color" widget="color"/>
+                            <field name="report_text_color" widget="color"/>
+                            <field name="report_border_color" widget="color"/>
+
+                        </group>
+                    </group>
+                    <footer>
+                        <button name="action_reset_report_theme"
+                                type="object"
+                                string="Reset to Default Theme"
+                                class="btn-primary"/>
+                    </footer>
+                </page>
+            </xpath>
+        </field>
+    </record>
+</odoo>

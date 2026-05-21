@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <record id="view_order_form_inherit_wht" model="ir.ui.view">
+            <field name="name">sale.order.form.inherit.wht</field>
+            <field name="model">sale.order</field>
+            <field name="inherit_id" ref="sale.view_order_form"/>
+            <field name="arch" type="xml">
+                <xpath expr="//field[@name='partner_id']" position="after">
+                    <field name="wht_pay_type" />
+                </xpath>
+                <xpath expr="//field[@name='order_line']/list/field[@name='tax_id']" position="after">
+                    <field name="wht_id" options="{'no_create': True}" optional="show"/>
+                    <field name="wht_tax_ids" widget="many2many_tags" options="{'no_create': True}" optional="hide"/>
+                    <field name="wht_amount" optional="hide"/>
+                </xpath>
+
+                <xpath expr="//group[@name='note_group']" position="after">
+                    <group class="oe_subtotal_footer oe_right" name="wht_totals">
+
+                        <field name="amount_wht_base" readonly="1" force_save="1"/>
+                        <field name="amount_wht" readonly="1" force_save="1"/>
+                        <field name="amount_net_total" class="oe_subtotal_footer_separator" readonly="1" force_save="1"/>
+                    </group>
+                </xpath>
+            </field>
+        </record>
+    </data>
+</odoo>

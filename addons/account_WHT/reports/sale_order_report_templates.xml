@@ -1,0 +1,262 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <template id="report_saleorder_document_inherit_wht" inherit_id="sale.report_saleorder_document">
+        <xpath expr="." position="replace">
+            <t t-call="web.html_container">
+                <t t-foreach="docs" t-as="doc">
+                    <t t-call="web.basic_layout">
+                        <t t-set="address" t-value="None"/>
+                        <t t-call="account_WHT.report_common_styles"/>
+
+                        <div class="page th-page">
+                            <!-- Header Section -->
+                            <table class="th-header-table">
+                                <tr>
+                                    <td class="th-header-left">
+                                        <t t-if="doc.company_id.logo">
+                                            <img t-att-src="image_data_uri(doc.company_id.logo)" class="th-company-logo" alt="Logo"/>
+                                        </t>
+                                        <div class="th-company-name">
+                                            <span t-field="doc.company_id.name"/>
+                                        </div>
+                                        <div class="th-company-address">
+                                            <span t-field="doc.company_id.street"/>
+                                            <span t-field="doc.company_id.street2"/>
+                                            <br/>
+                                            <span t-field="doc.company_id.city"/>
+                                            <span t-field="doc.company_id.state_id.name"/>
+                                            <span t-field="doc.company_id.zip"/>
+                                            <br/>
+                                            โทร: <span t-field="doc.company_id.phone"/> | อีเมล: <span t-field="doc.company_id.email"/>
+                                            <br/>
+                                            เลขประจำตัวผู้เสียภาษี: <span t-field="doc.company_id.vat"/>
+                                        </div>
+                                    </td>
+                                    <td class="th-header-right">
+                                        <div class="th-doc-box">
+                                            <div class="th-doc-title">
+                                                <t t-if="env.context.get('proforma', False) or is_pro_forma">ใบแจ้งหนี้ชั่วคราว</t>
+                                                <t t-elif="doc.state in ['draft','sent']">ใบเสนอราคา</t>
+                                                <t t-else="">ใบสั่งขาย</t>
+                                            </div>
+                                            <table class="th-doc-meta-table">
+                                                <tr>
+                                                    <td class="th-doc-meta-label">เลขที่เอกสาร:</td>
+                                                    <td class="th-doc-meta-value">
+                                                        <span t-field="doc.name"/>
+                                                    </td>
+                                                </tr>
+                                                <tr>
+                                                    <td class="th-doc-meta-label">วันที่:</td>
+                                                    <td class="th-doc-meta-value">
+                                                        <span t-field="doc.date_order" t-options='{"widget": "date"}'/>
+                                                    </td>
+                                                </tr>
+                                                <t t-if="doc.validity_date">
+                                                    <tr>
+                                                        <td class="th-doc-meta-label">ยืนราคาถึง:</td>
+                                                        <td class="th-doc-meta-value">
+                                                            <span t-field="doc.validity_date"/>
+                                                        </td>
+                                                    </tr>
+                                                </t>
+                                                <tr>
+                                                    <td class="th-doc-meta-label">พนักงานขาย:</td>
+                                                    <td class="th-doc-meta-value">
+                                                        <span t-field="doc.user_id.name"/>
+                                                    </td>
+                                                </tr>
+                                            </table>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </table>
+
+                            <!-- Customer Info -->
+                            <div class="th-partner-box">
+                                <table class="th-partner-table">
+                                    <tr>
+                                        <td class="th-partner-label-col">ลูกค้า:</td>
+                                        <td class="th-partner-info-col">
+                                            <div class="th-partner-name">
+                                                <span t-field="doc.partner_id.name"/>
+                                            </div>
+                                            <div>
+                                                <span t-field="doc.partner_id.street"/>
+                                                <span t-field="doc.partner_id.street2"/>
+                                            </div>
+                                            <div>
+                                                <span t-field="doc.partner_id.city"/>
+                                                <span t-field="doc.partner_id.state_id.name"/>
+                                                <span t-field="doc.partner_id.zip"/>
+                                            </div>
+                                            <div>โทร: <span t-field="doc.partner_id.phone"/>
+                                            </div>
+                                        </td>
+                                        <td class="th-partner-tax-col">
+                                            <div>
+                                                <strong>สำนักงาน:</strong> สำนักงานใหญ่
+                                            </div>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </div>
+
+                            <!-- Item Table -->
+                            <table class="th-table">
+                                <thead>
+                                    <tr>
+                                        <th width="8%">ลำดับ</th>
+                                        <th>รายการ</th>
+                                        <th width="12%">จำนวน</th>
+                                        <th width="10%">หน่วย</th>
+                                        <th width="15%">ราคา/หน่วย</th>
+                                        <th width="10%">ภาษี</th>
+                                        <th width="18%">จำนวนเงิน</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <t t-set="line_no" t-value="1"/>
+                                    <t t-foreach="doc.order_line" t-as="line">
+                                        <t t-if="not line.display_type">
+                                            <tr>
+                                                <td class="text-center">
+                                                    <t t-esc="line_no"/>
+                                                    <t t-set="line_no" t-value="line_no + 1"/>
+                                                </td>
+                                                <td>
+                                                    <span t-field="line.name"/>
+                                                </td>
+                                                <td class="text-right">
+                                                    <span t-field="line.product_uom_qty"/>
+                                                </td>
+                                                <td class="text-center">
+                                                    <span t-field="line.product_uom.name"/>
+                                                </td>
+                                                <td class="text-right">
+                                                    <span t-field="line.price_unit" t-options='{"widget": "monetary", "display_currency": doc.currency_id}'/>
+                                                </td>
+                                                <td class="text-center">
+                                                    <t t-foreach="line.tax_id" t-as="tax">
+                                                        <span t-out="tax.description or tax.name"/>
+                                                    </t>
+                                                </td>
+                                                <td class="text-right">
+                                                    <span t-field="line.price_subtotal" t-options='{"widget": "monetary", "display_currency": doc.currency_id}'/>
+                                                </td>
+                                            </tr>
+                                        </t>
+                                    </t>
+                                </tbody>
+                            </table>
+
+                            <!-- Summary Section -->
+                            <table class="th-summary-wrapper">
+                                <tr>
+                                    <td class="th-notes-col">
+                                        <div class="th-notes-box">
+                                            <strong>หมายเหตุ:</strong>
+                                            <div t-field="doc.note" style="min-height: 20px;"/>
+                                            <div class="th-notes-amounttext">
+                                                จำนวนเงินตัวอักษร:
+                                                <t t-set="amt_txt" t-value="doc.currency_id.with_context(lang='th_TH').amount_to_text(doc.amount_net_total if doc.amount_wht else doc.amount_total)"/>
+                                                <span t-esc="amt_txt.replace(' ', '') if 'สตางค์' in amt_txt or amt_txt.replace(' ', '').endswith('ถ้วน') else amt_txt.replace(' ', '') + 'ถ้วน'"/>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="th-totals-col">
+                                        <table class="th-totals-table">
+                                            <tr>
+                                                <td class="th-totals-cell">รวมเป็นเงิน</td>
+                                                <td class="text-right th-totals-cell">
+                                                    <span t-field="doc.amount_untaxed" t-options='{"widget": "monetary", "display_currency": doc.currency_id}'/>
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td class="th-totals-cell">ภาษีมูลค่าเพิ่ม (7%)</td>
+                                                <td class="text-right th-totals-cell">
+                                                    <span t-field="doc.amount_tax" t-options='{"widget": "monetary", "display_currency": doc.currency_id}'/>
+                                                </td>
+                                            </tr>
+                                            <tr class="th-total-grand-row">
+                                                <td class="th-total-grand-cell">จำนวนเงินรวมทั้งสิ้น</td>
+                                                <td class="text-right th-total-grand-cell">
+                                                    <span t-field="doc.amount_total" t-options='{"widget": "monetary", "display_currency": doc.currency_id}'/>
+                                                </td>
+                                            </tr>
+                                            <t t-if="doc.amount_wht">
+                                                <tr class="th-wht-row">
+                                                    <td class="th-totals-cell">ภาษีหัก ณ ที่จ่าย</td>
+                                                    <td class="text-right th-totals-cell">
+                                                        <span t-field="doc.amount_wht" t-options='{"widget": "monetary", "display_currency": doc.currency_id}'/>
+                                                    </td>
+                                                </tr>
+                                                <tr class="th-net-row">
+                                                    <td class="th-net-cell">ยอดสั่งขายสุทธิ</td>
+                                                    <td class="text-right th-net-cell">
+                                                        <span t-field="doc.amount_net_total" t-options='{"widget": "monetary", "display_currency": doc.currency_id}'/>
+                                                    </td>
+                                                </tr>
+                                            </t>
+                                        </table>
+                                    </td>
+                                </tr>
+                            </table>
+                        </div>
+
+                        <!-- Footer / Signatures (ห้ามแก้ไขส่วนนี้) -->
+                        <div class="footer">
+                            <table style="width: 100%; border-collapse: collapse; border: none; table-layout: fixed;">
+                                <tr>
+                                    <td style="width: 50%; padding: 5px; border: none; vertical-align: bottom !important;">
+                                        <div style="border: 0.2mm solid #ccc; padding: 10px; text-align: center; border-radius: 5px;">
+                                            <!-- Signature Area (Left) -->
+                                            <div style="min-height: 25mm; vertical-align: bottom;">
+                                                <t t-set="sig_company" t-value="None"/>
+                                                <t t-set="sig_show_name" t-value="False"/>
+                                                <t t-call="account_WHT.report_signature_block"/>
+                                            </div>
+                                            <div style="font-size: 14px; margin-bottom: 0;">ผู้อนุมัติสั่งซื้อ</div>
+                                            <div style="font-size: 12px; margin-top: 3px;">วันที่: ................................</div>
+                                        </div>
+                                    </td>
+                                    <td style="width: 50%; padding: 5px; border: none; vertical-align: bottom !important;">
+                                        <div style="border: 0.2mm solid #ccc; padding: 10px; text-align: center; border-radius: 5px;">
+                                            <!-- Signature Area (Right) -->
+                                            <div style="min-height: 25mm; vertical-align: bottom;">
+                                                <div style="width: 100%; text-align: inherit; font-family: 'TH Sarabun New', 'Garuda', Tahoma, sans-serif; font-size: 14px; line-height: 1.6; letter-spacing: 0; color: #000000; page-break-inside: avoid;">
+                                                    <table style="width: 100%; border-collapse: collapse;">
+                                                        <tr>
+                                                            <td style="height: 25mm; vertical-align: bottom; text-align: center; padding: 0;">
+                                                                <t t-if="doc.company_id.signature_name">
+                                                                    <div style="margin-bottom: 2mm;">
+                                                                        <span t-esc="doc.company_id.signature_name"/>
+                                                                    </div>
+                                                                </t>
+                                                                <t t-else="">
+                                                                    <div style="height: 25mm;"></div>
+                                                                </t>
+                                                            </td>
+                                                        </tr>
+                                                    </table>
+                                                    <div style="border-top: 0.3mm solid #000000; width: 175px; margin-top: 2mm; display: inline-block;"></div>
+                                                </div>
+                                            </div>
+                                            <div style="font-size: 14px; margin-top: 5px; margin-bottom: 0;">ผู้รับคำสั่งซื้อ</div>
+                                            <div style="font-size: 12px; margin-top: 3px;">วันที่:
+                                                <span t-field="doc.date_order" t-options='{"widget": "date"}'/>
+                                            </div>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </table>
+                            <div class="th-page-number">
+                                หน้า <span class="page"/> / <span class="topage"/>
+                            </div>
+                        </div>
+                    </t>
+                </t>
+            </t>
+        </xpath>
+    </template>
+</odoo>

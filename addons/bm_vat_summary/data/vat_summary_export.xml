@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!-- # -*- coding: utf-8 -*-
+# See LICENSE file for full licensing details.
+# See COPYRIGHT file for full copyright details.
+# Developed by Bizmate - Unbox Solutions Co., Ltd. -->
+
+<odoo noupdate="0">
+    <record id="export_vat_summary" model="ir.exports">
+        <field name="name">VAT Summary</field>
+        <field name="resource">account.move.line</field>
+    </record>
+
+    <record id="export_vat_summary_line_1" model="ir.exports.line">
+        <field name="name">ex01_vat_summary_name</field>
+        <field name="export_id" ref="bm_vat_summary.export_vat_summary" />
+    </record>
+    <record id="export_vat_summary_line_2" model="ir.exports.line">
+        <field name="name">ex02_date</field>
+        <field name="export_id" ref="bm_vat_summary.export_vat_summary" />
+    </record>
+    <record id="export_vat_summary_line_3" model="ir.exports.line">
+        <field name="name">ex03_invoice_partner_display_name</field>
+        <field name="export_id" ref="bm_vat_summary.export_vat_summary" />
+    </record>
+    <record id="export_vat_summary_line_4" model="ir.exports.line">
+        <field name="name">ex04_partner_vat</field>
+        <field name="export_id" ref="bm_vat_summary.export_vat_summary" />
+    </record>
+    <record id="export_vat_summary_line_5" model="ir.exports.line">
+        <field name="name">ex05_partner_ref</field>
+        <field name="export_id" ref="bm_vat_summary.export_vat_summary" />
+    </record>
+    <record id="export_vat_summary_line_6" model="ir.exports.line">
+        <field name="name">ex06_tax_base_amount</field>
+        <field name="export_id" ref="bm_vat_summary.export_vat_summary" />
+    </record>
+    <record id="export_vat_summary_line_7" model="ir.exports.line">
+        <field name="name">ex07_vat_amount</field>
+        <field name="export_id" ref="bm_vat_summary.export_vat_summary" />
+    </record>
+    <record id="export_vat_summary_line_8" model="ir.exports.line">
+        <field name="name">ex08_all_tax_ids</field>
+        <field name="export_id" ref="bm_vat_summary.export_vat_summary" />
+    </record>
+    <record id="export_vat_summary_line_9" model="ir.exports.line">
+        <field name="name">ex09_origin_doc_id</field>
+        <field name="export_id" ref="bm_vat_summary.export_vat_summary" />
+    </record>
+    <record id="export_vat_summary_line_10" model="ir.exports.line">
+        <field name="name">ex10_currency_id</field>
+        <field name="export_id" ref="bm_vat_summary.export_vat_summary" />
+    </record>
+    <record id="export_vat_summary_line_11" model="ir.exports.line">
+        <field name="name">ex11_company_id</field>
+        <field name="export_id" ref="bm_vat_summary.export_vat_summary" />
+    </record>
+</odoo>

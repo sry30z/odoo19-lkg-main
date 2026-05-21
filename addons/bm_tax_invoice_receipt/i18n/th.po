@@ -1,0 +1,404 @@
+# Translation of Odoo Server.
+# This file contains the translation of the following modules:
+# 	* bm_tax_invoice_receipt
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: Odoo Server 18.0-20241125\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2024-12-10 07:00+0000\n"
+"PO-Revision-Date: 2024-12-10 07:00+0000\n"
+"Last-Translator: \n"
+"Language-Team: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: \n"
+"Plural-Forms: \n"
+
+#. module: bm_tax_invoice_receipt
+#: model_terms:ir.ui.view,arch_db:bm_tax_invoice_receipt.bm_portal_invoice_page_inherit_payment
+msgid "(Cancelled)"
+msgstr "(ยกเลิก)"
+
+#. module: bm_tax_invoice_receipt
+#: model_terms:ir.ui.view,arch_db:bm_tax_invoice_receipt.bm_portal_invoice_page_inherit_payment
+msgid "(Draft)"
+msgstr "(ร่าง)"
+
+#. module: bm_tax_invoice_receipt
+#: model:ir.actions.report,print_report_name:bm_tax_invoice_receipt.report_payment_receipt
+msgid "(object.name)"
+msgstr ""
+
+#. module: bm_tax_invoice_receipt
+#: model_terms:ir.ui.view,arch_db:bm_tax_invoice_receipt.report_payment_receipt_document
+msgid "100.00 USD"
+msgstr ""
+
+#. module: bm_tax_invoice_receipt
+#: model_terms:ir.ui.view,arch_db:bm_tax_invoice_receipt.report_tax_invoice_receipt_document
+msgid "2023-09-12"
+msgstr ""
+
+#. module: bm_tax_invoice_receipt
+#: model_terms:ir.ui.view,arch_db:bm_tax_invoice_receipt.report_tax_invoice_receipt_document
+msgid "27.00"
+msgstr ""
+
+#. module: bm_tax_invoice_receipt
+#: model_terms:ir.ui.view,arch_db:bm_tax_invoice_receipt.report_tax_invoice_receipt_document
+msgid "3.00"
+msgstr ""
+
+#. module: bm_tax_invoice_receipt
+#: model_terms:ir.ui.view,arch_db:bm_tax_invoice_receipt.report_tax_invoice_receipt_document
+msgid "31.05"
+msgstr ""
+
+#. module: bm_tax_invoice_receipt
+#: model_terms:ir.ui.view,arch_db:bm_tax_invoice_receipt.report_tax_invoice_receipt_document
+msgid "9.00"
+msgstr ""
+
+#. module: bm_tax_invoice_receipt
+#: model:mail.template,body_html:bm_tax_invoice_receipt.mail_template_data_tax_invoice_receipt
+msgid ""
+"<div style=\"margin: 0px; padding: 0px;\">\n"
+"    <p style=\"margin: 0px; padding: 0px; font-size: 13px;\">\n"
+"        Dear <t t-out=\"object.partner_id.name or ''\">Azure Interior</t><br><br>\n"
+"        Thank you for your payment.\n"
+"        Here is your payment receipt <span style=\"font-weight:bold;\" t-out=\"(object.name or '').replace('/','-') or ''\">BNK1-2021-05-0002</span> amounting\n"
+"        to <span style=\"font-weight:bold;\" t-out=\"format_amount(object.amount, object.currency_id) or ''\">$ 10.00</span> from <t t-out=\"object.company_id.name or ''\">YourCompany</t>.\n"
+"        <br><br>\n"
+"        Do not hesitate to contact us if you have any questions.\n"
+"        <br><br>\n"
+"        Best regards,\n"
+"        <t t-if=\"not is_html_empty(user.signature)\">\n"
+"            <br><br>\n"
+"            <t t-out=\"user.signature or ''\">--<br>Mitchell Admin</t>\n"
+"        </t>\n"
+"    </p>\n"
+"</div>\n"
+msgstr ""
+"<div style=\"margin: 0px; padding: 0px;\">\n"
+"    <p style=\"margin: 0px; padding: 0px; font-size: 13px;\">\n"
+"        เรียน <t t-out=\"object.partner_id.name or ''\">Azure Interior</t><br><br>\n"
+"        ขอบคุณสำหรับการชำระเงินของคุณ\n"
+"        นี่คือใบเสร็จการชำระเงินของคุณ <span style=\"font-weight:bold;\" t-out=\"(object.name or '').replace('/','-') or ''\">BNK1-2021-05-0002</span> เป็นจำนวนเงิน\n"
+"        <span style=\"font-weight:bold;\" t-out=\"format_amount(object.amount, object.currency_id) or ''\">$ 10.00</span> จาก <t t-out=\"object.company_id.name or ''\">บริษัทของคุณ</t>.\n"
+"        <br><br>\n"
+"        โปรดติดต่อเราทันทีหากมีคำถามเพิ่มเติม\n"
+"        <br><br>\n"
+"        ขอแสดงความนับถืออย่างสูง,\n"
+"        <t t-if=\"not is_html_empty(user.signature)\">\n"
+"            <br><br>\n"
+"            <t t-out=\"user.signature or ''\">--<br>ผู้ดูแลระบบ Mitchell</t>\n"
+"        </t>\n"
+"    </p>\n"
+"</div>\n"
+
+#. module: bm_tax_invoice_receipt
+#: model_terms:ir.ui.view,arch_db:bm_tax_invoice_receipt.bm_portal_invoice_page_inherit_payment
+msgid "<i class=\"fa fa-download \"/> Invoice"
+msgstr "<i class=\"fa fa-download \"/> ใบแจ้งหนี้"
+
+#. module: bm_tax_invoice_receipt
+#: model_terms:ir.ui.view,arch_db:bm_tax_invoice_receipt.bm_portal_invoice_page_inherit_payment
+msgid "<i class=\"fa fa-download\"/> Receipt"
+msgstr "<i class=\"fa fa-download\"/> ใบเสร็จรับเงิน"
+
+#. module: bm_tax_invoice_receipt
+#: model_terms:ir.ui.view,arch_db:bm_tax_invoice_receipt.bm_portal_invoice_page_inherit_payment
+msgid "<i class=\"fa fa-download\"/> Tax Invoice / Delivery Order"
+msgstr "<i class=\"fa fa-download\"/> ใบกำกับภาษี / ใบส่งสินค้า"
+
+#. module: bm_tax_invoice_receipt
+#: model_terms:ir.ui.view,arch_db:bm_tax_invoice_receipt.bm_portal_invoice_page_inherit_payment
+msgid "<i class=\"fa fa-download\"/> Tax Invoice / Receipt"
+msgstr "<i class=\"fa fa-download\"/> ใบเสร็จรับเงิน / ใบกำกับภาษี"
+
+#. module: bm_tax_invoice_receipt
+#: model_terms:ir.ui.view,arch_db:bm_tax_invoice_receipt.report_payment_receipt_document
+#: model_terms:ir.ui.view,arch_db:bm_tax_invoice_receipt.report_tax_invoice_receipt_document
+msgid "<span>Amount</span>"
+msgstr "ยอดรวม"
+
+#. module: bm_tax_invoice_receipt
+#: model_terms:ir.ui.view,arch_db:bm_tax_invoice_receipt.report_tax_invoice_receipt_document
+msgid "<span>Description</span>"
+msgstr "รายละเอียด"
+
+#. module: bm_tax_invoice_receipt
+#: model_terms:ir.ui.view,arch_db:bm_tax_invoice_receipt.report_tax_invoice_receipt_document
+msgid "<span>Disc.%</span>"
+msgstr "ส่วนลด%"
+
+#. module: bm_tax_invoice_receipt
+#: model_terms:ir.ui.view,arch_db:bm_tax_invoice_receipt.report_payment_receipt_document
+msgid "<span>Payment Memo</span>"
+msgstr "<span>บึกทึกรับเงิน</span>"
+
+#. module: bm_tax_invoice_receipt
+#: model_terms:ir.ui.view,arch_db:bm_tax_invoice_receipt.report_tax_invoice_receipt_document
+msgid "<span>Quantity</span>"
+msgstr "จำนวน"
+
+#. module: bm_tax_invoice_receipt
+#: model_terms:ir.ui.view,arch_db:bm_tax_invoice_receipt.report_tax_invoice_receipt_document
+msgid "<span>Taxes</span>"
+msgstr "ภาษี"
+
+#. module: bm_tax_invoice_receipt
+#: model_terms:ir.ui.view,arch_db:bm_tax_invoice_receipt.report_tax_invoice_receipt_document
+msgid "<span>Unit Price</span>"
+msgstr "ราคาต่อหน่วย"
+
+#. module: bm_tax_invoice_receipt
+#: model_terms:ir.ui.view,arch_db:bm_tax_invoice_receipt.report_tax_invoice_receipt_document
+msgid "<strong class=\"mr16\">Subtotal</strong>"
+msgstr "ราคาก่อนรวมภาษีมูลค่าเพิ่ม"
+
+#. module: bm_tax_invoice_receipt
+#: model_terms:ir.ui.view,arch_db:bm_tax_invoice_receipt.report_tax_invoice_receipt_document
+msgid "<strong>Customer Code</strong>"
+msgstr "รหัสลูกค้า"
+
+#. module: bm_tax_invoice_receipt
+#: model_terms:ir.ui.view,arch_db:bm_tax_invoice_receipt.report_tax_invoice_receipt_document
+msgid "<strong>Invoice Date</strong>"
+msgstr "วันที่แจ้งหนี้"
+
+#. module: bm_tax_invoice_receipt
+#: model_terms:ir.ui.view,arch_db:bm_tax_invoice_receipt.report_tax_invoice_receipt_document
+msgid "<strong>Invoice No.</strong>"
+msgstr "เลขที่ใบแจ้งหนี้"
+
+#. module: bm_tax_invoice_receipt
+#: model_terms:ir.ui.view,arch_db:bm_tax_invoice_receipt.report_tax_invoice_receipt_document
+msgid "<strong>Payment Date</strong>"
+msgstr "วันที่ชำระเงิน"
+
+#. module: bm_tax_invoice_receipt
+#: model_terms:ir.ui.view,arch_db:bm_tax_invoice_receipt.report_tax_invoice_receipt_document
+msgid "<strong>Reference</strong>"
+msgstr "อ้างอิง"
+
+#. module: bm_tax_invoice_receipt
+#: model_terms:ir.ui.view,arch_db:bm_tax_invoice_receipt.report_tax_invoice_receipt_document
+msgid "A note, whose content usually applies to the section or product above."
+msgstr ""
+
+#. module: bm_tax_invoice_receipt
+#: model_terms:ir.ui.view,arch_db:bm_tax_invoice_receipt.report_tax_invoice_receipt_document
+msgid "A section title"
+msgstr ""
+
+#. module: bm_tax_invoice_receipt
+#: model_terms:ir.ui.view,arch_db:bm_tax_invoice_receipt.report_tax_invoice_receipt_document
+msgid "Bacon Burger"
+msgstr ""
+
+#. module: bm_tax_invoice_receipt
+#: model_terms:ir.ui.view,arch_db:bm_tax_invoice_receipt.report_invoice_document
+msgid "Credit Note"
+msgstr "ใบลดหนี้"
+
+#. module: bm_tax_invoice_receipt
+#: model_terms:ir.ui.view,arch_db:bm_tax_invoice_receipt.report_invoice_document
+msgid "Credit Note (Cancelled)"
+msgstr "ใบลดหนี้ (ยกเลิก)"
+
+#. module: bm_tax_invoice_receipt
+#: model_terms:ir.ui.view,arch_db:bm_tax_invoice_receipt.report_invoice_document
+msgid "Credit Note (Draft)"
+msgstr "ใบลดหนี้ (ร่าง)"
+
+#. module: bm_tax_invoice_receipt
+#: model_terms:ir.ui.view,arch_db:bm_tax_invoice_receipt.bm_portal_invoice_page_inherit_payment
+msgid "Download Tax Invoice / Receipt"
+msgstr "ดาวน์โหลด ใบเสร็จรับเงิน / ใบกำกับภาษี"
+
+#. module: bm_tax_invoice_receipt
+#: model_terms:ir.ui.view,arch_db:bm_tax_invoice_receipt.report_tax_invoice_receipt_document
+msgid "INV/2023/00001"
+msgstr ""
+
+#. module: bm_tax_invoice_receipt
+#: model_terms:ir.ui.view,arch_db:bm_tax_invoice_receipt.report_invoice_document
+msgid "INV/2023/0001"
+msgstr ""
+
+#. module: bm_tax_invoice_receipt
+#. odoo-python
+#: code:addons/bm_tax_invoice_receipt/controllers/portal.py:0
+msgid "Invalid report type: %s"
+msgstr ""
+
+#. module: bm_tax_invoice_receipt
+#: model_terms:ir.ui.view,arch_db:bm_tax_invoice_receipt.bm_portal_invoice_page_inherit_payment
+#: model_terms:ir.ui.view,arch_db:bm_tax_invoice_receipt.report_invoice_document
+msgid "Invoice"
+msgstr "ใบแจ้งหนี้"
+
+#. module: bm_tax_invoice_receipt
+#: model_terms:ir.ui.view,arch_db:bm_tax_invoice_receipt.report_invoice_document
+msgid "Invoice (Cancelled)"
+msgstr "ใบแจ้งหนี้ (ยกเลิก)"
+
+#. module: bm_tax_invoice_receipt
+#: model_terms:ir.ui.view,arch_db:bm_tax_invoice_receipt.report_invoice_document
+msgid "Invoice (Draft)"
+msgstr "ใบแจ้งหนี้ (ร่าง)"
+
+#. module: bm_tax_invoice_receipt
+#: model:ir.model.fields,field_description:bm_tax_invoice_receipt.field_account_bank_statement_line__is_non_vat
+#: model:ir.model.fields,field_description:bm_tax_invoice_receipt.field_account_move__is_non_vat
+msgid "Is Non VAT?"
+msgstr "เป็น Non VAT?"
+
+#. module: bm_tax_invoice_receipt
+#: model:ir.model.fields,field_description:bm_tax_invoice_receipt.field_account_bank_statement_line__is_service_invoice
+#: model:ir.model.fields,field_description:bm_tax_invoice_receipt.field_account_move__is_service_invoice
+msgid "Is Service Invoice?"
+msgstr "เป็นภาษีบริการ?"
+
+#. module: bm_tax_invoice_receipt
+#: model:ir.model.fields,field_description:bm_tax_invoice_receipt.field_account_bank_statement_line__is_tax_mix
+#: model:ir.model.fields,field_description:bm_tax_invoice_receipt.field_account_move__is_tax_mix
+msgid "Is Tax Mix? (Product + Service)"
+msgstr "มีภาษีปนกัน (สินค้า + บริการ)"
+
+#. module: bm_tax_invoice_receipt
+#: model:ir.model,name:bm_tax_invoice_receipt.model_account_move
+msgid "Journal Entry"
+msgstr "รายการสมุดรายวัน"
+
+#. module: bm_tax_invoice_receipt
+#: model:ir.model.fields,field_description:bm_tax_invoice_receipt.field_account_bank_statement_line__matched_payment_compute_ids
+#: model:ir.model.fields,field_description:bm_tax_invoice_receipt.field_account_move__matched_payment_compute_ids
+msgid "Matched Compute Payments"
+msgstr ""
+
+#. module: bm_tax_invoice_receipt
+#. odoo-python
+#: code:addons/bm_tax_invoice_receipt/controllers/portal.py:0
+msgid "Multi company reports are not supported."
+msgstr ""
+
+#. module: bm_tax_invoice_receipt
+#: model_terms:ir.ui.view,arch_db:bm_tax_invoice_receipt.report_tax_invoice_receipt_document
+msgid "PBNK/2023/00001"
+msgstr ""
+
+#. module: bm_tax_invoice_receipt
+#: model:mail.template,name:bm_tax_invoice_receipt.mail_template_data_tax_invoice_receipt
+msgid "Payment: Tax Invoice / Receipt"
+msgstr "การชำระเงิน: ใบเสร็จรับเงิน / ใบกำกับภาษี"
+
+#. module: bm_tax_invoice_receipt
+#: model:ir.model,name:bm_tax_invoice_receipt.model_account_payment
+msgid "Payments"
+msgstr "การชำระเงิน"
+
+#. module: bm_tax_invoice_receipt
+#. odoo-python
+#: code:addons/bm_tax_invoice_receipt/models/account_move.py:0
+msgid "Please do not mix tax (product and service)."
+msgstr "กรุณาไม่ระบุภาษีปนกัน (สินค้า และ บริการ)"
+
+#. module: bm_tax_invoice_receipt
+#: model_terms:ir.ui.view,arch_db:bm_tax_invoice_receipt.report_tax_invoice_receipt_document
+msgid "Receipt"
+msgstr "ใบเสร็จรับเงิน"
+
+#. module: bm_tax_invoice_receipt
+#: model_terms:ir.ui.view,arch_db:bm_tax_invoice_receipt.report_tax_invoice_receipt_document
+msgid "SO123"
+msgstr ""
+
+#. module: bm_tax_invoice_receipt
+#: model_terms:ir.ui.view,arch_db:bm_tax_invoice_receipt.report_payment_receipt_document
+msgid "Sample Ref"
+msgstr ""
+
+#. module: bm_tax_invoice_receipt
+#: model:ir.actions.act_window,name:bm_tax_invoice_receipt.account_send_tax_invoice_receipt_by_email_action
+#: model:ir.actions.act_window,name:bm_tax_invoice_receipt.account_send_tax_invoice_receipt_by_email_action_multi
+msgid "Send Tax Invoice / Receipt by email"
+msgstr "ส่งเมล ใบเสร็จรับเงิน / ใบกำกับภาษี"
+
+#. module: bm_tax_invoice_receipt
+#: model:mail.template,description:bm_tax_invoice_receipt.mail_template_data_tax_invoice_receipt
+msgid ""
+"Sent manually to customer when clicking on 'Send receipt by email' in "
+"payment action"
+msgstr ""
+
+#. module: bm_tax_invoice_receipt
+#: model_terms:ir.ui.view,arch_db:bm_tax_invoice_receipt.report_tax_invoice_receipt_document
+msgid "Tax 15%"
+msgstr ""
+
+#. module: bm_tax_invoice_receipt
+#: model_terms:ir.ui.view,arch_db:bm_tax_invoice_receipt.report_tax_invoice_receipt_document
+msgid "Tax ID"
+msgstr "เลขที่ผู้เสียภาษี"
+
+#. module: bm_tax_invoice_receipt
+#: model_terms:ir.ui.view,arch_db:bm_tax_invoice_receipt.report_invoice_document
+msgid "Tax Invoice / Delivery Order"
+msgstr "ใบกำกับภาษี / ใบส่งสินค้า"
+
+#. module: bm_tax_invoice_receipt
+#: model_terms:ir.ui.view,arch_db:bm_tax_invoice_receipt.report_invoice_document
+msgid "Tax Invoice / Delivery Order (Cancelled)"
+msgstr "ใบกำกับภาษี / ใบส่งสินค้า (ยกเลิก)"
+
+#. module: bm_tax_invoice_receipt
+#: model_terms:ir.ui.view,arch_db:bm_tax_invoice_receipt.report_invoice_document
+msgid "Tax Invoice / Delivery Order (Draft)"
+msgstr "ใบกำกับภาษี / ใบส่งสินค้า (ร่าง)"
+
+#. module: bm_tax_invoice_receipt
+#: model:ir.actions.report,name:bm_tax_invoice_receipt.report_payment_receipt
+#: model_terms:ir.ui.view,arch_db:bm_tax_invoice_receipt.report_tax_invoice_receipt_document
+msgid "Tax Invoice / Receipt"
+msgstr "ใบเสร็จรับเงิน / ใบกำกับภาษี"
+
+#. module: bm_tax_invoice_receipt
+#: model_terms:ir.ui.view,arch_db:bm_tax_invoice_receipt.report_tax_invoice_receipt_document
+msgid "Thirty one dollar and Five cents"
+msgstr ""
+
+#. module: bm_tax_invoice_receipt
+#. odoo-python
+#: code:addons/bm_tax_invoice_receipt/controllers/portal.py:0
+msgid "This document does not exist."
+msgstr ""
+
+#. module: bm_tax_invoice_receipt
+#: model_terms:ir.ui.view,arch_db:bm_tax_invoice_receipt.report_tax_invoice_receipt_document
+msgid "Total amount in words: <br/>"
+msgstr "จำนวนเงินทั้งหมดเป็นตัวอักษร"
+
+#. module: bm_tax_invoice_receipt
+#: model_terms:ir.ui.view,arch_db:bm_tax_invoice_receipt.report_invoice_document
+msgid "Vendor Bill"
+msgstr "บิลผู้ขาย"
+
+#. module: bm_tax_invoice_receipt
+#: model_terms:ir.ui.view,arch_db:bm_tax_invoice_receipt.report_invoice_document
+msgid "Vendor Credit Note"
+msgstr "ใบลดหนี้ผู้ขาย"
+
+#. module: bm_tax_invoice_receipt
+#: model_terms:ir.ui.view,arch_db:bm_tax_invoice_receipt.report_tax_invoice_receipt_document
+msgid "units"
+msgstr "หน่วย"
+
+#. module: bm_tax_invoice_receipt
+#: model:mail.template,subject:bm_tax_invoice_receipt.mail_template_data_tax_invoice_receipt
+msgid ""
+"{{ object.company_id.name }} Payment Receipt (Ref {{ object.name or 'n/a' "
+"}})"
+msgstr ""

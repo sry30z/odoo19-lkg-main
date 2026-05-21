@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- # -*- coding: utf-8 -*-
+# See LICENSE file for full licensing details.
+# See COPYRIGHT file for full copyright details.
+# Developed by Bizmate - Unbox Solutions Co., Ltd. -->
+
+<odoo>
+    <template id="bm_portal_invoice_page_inherit_payment" inherit_id="account_payment.portal_invoice_page_inherit_payment">
+        <xpath expr="//t[@t-call='portal.portal_record_sidebar']//div[hasclass('o_download_pdf')]//a" position="replace">
+            <t t-if="invoice.is_inbound() and (invoice.is_service_invoice or invoice.is_non_vat)">
+                <a class="btn btn-light o_download_btn flex-grow-1" t-att-href="invoice.get_portal_url(report_type='pdf', download=True)" title="Invoice" role="button">
+                    <i class="fa fa-download "/> Invoice 
+                    <span t-if="invoice.state == 'draft'">(Draft)</span>
+                    <span t-if="invoice.state == 'cancel'">(Cancelled)</span>
+                </a>
+            </t>
+            <t t-if="invoice.is_inbound() and not invoice.is_service_invoice and not invoice.is_non_vat">
+                <a class="btn btn-light o_download_btn flex-grow-1" t-att-href="invoice.get_portal_url(report_type='pdf', download=True)" title="Invoice" role="button">
+                    <i class="fa fa-download"/> Tax Invoice / Delivery Order 
+                    <span t-if="invoice.state == 'draft'">(Draft)</span>
+                    <span t-if="invoice.state == 'cancel'">(Cancelled)</span>
+                </a>
+            </t>
+        </xpath>
+        <xpath expr="//t[@t-call='portal.portal_record_sidebar']//div[hasclass('o_download_pdf')]" position="after">
+            <t t-if="invoice.is_inbound() and invoice.is_service_invoice">
+                <t t-foreach="invoice.matched_payment_compute_ids" t-as="payment">
+                    <a class="btn btn-light o_download_btn flex-grow-1" t-att-href="invoice.get_portal_payment_url(payment.id, report_type='pdf', download=True)" title="Download Tax Invoice / Receipt" role="button">
+                        <i class="fa fa-download"/> Tax Invoice / Receipt 
+                        <span t-if="invoice.state == 'draft'">(Draft)</span>
+                        <span t-if="invoice.state == 'cancel'">(Cancelled)</span>
+                    </a>
+                </t>
+            </t>
+            <t t-if="invoice.is_inbound() and not invoice.is_service_invoice">
+                <t t-foreach="invoice.matched_payment_compute_ids" t-as="payment">
+                    <a class="btn btn-light o_download_btn flex-grow-1" t-att-href="invoice.get_portal_payment_url(payment.id, report_type='pdf', download=True)" title="Download Tax Invoice / Receipt" role="button">
+                        <i class="fa fa-download"/> Receipt 
+                        <span t-if="invoice.state == 'draft'">(Draft)</span>
+                        <span t-if="invoice.state == 'cancel'">(Cancelled)</span>
+                    </a>
+                </t>
+            </t>
+        </xpath>
+    </template>
+</odoo>

@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- # -*- coding: utf-8 -*-
+# See LICENSE file for full licensing details.
+# See COPYRIGHT file for full copyright details.
+# Developed by Bizmate - Unbox Solutions Co., Ltd. -->
+
+<odoo>
+    <data noupdate="1">
+        <record id="account_send_tax_invoice_receipt_by_email_action" model="ir.actions.act_window">
+            <field name="name">Send Tax Invoice / Receipt by email</field>
+            <field name="res_model">mail.compose.message</field>
+            <field name="view_mode">form</field>
+            <field name="target">new</field>
+            <field name="context" eval="{
+                'mail_post_autofollow': True,
+                'default_composition_mode': 'comment',
+                'default_template_id': ref('bm_tax_invoice_receipt.mail_template_data_tax_invoice_receipt'),
+                'default_email_layout_xmlid': 'mail.mail_notification_light',
+            }"/>
+            <field name="binding_model_id" ref="account.model_account_payment"/>
+            <field name="binding_view_types">form</field>
+            <field name="groups_id" eval="[(4, ref('account.group_account_invoice'))]"/>
+        </record>
+
+        <record id="account_send_tax_invoice_receipt_by_email_action_multi" model="ir.actions.act_window">
+            <field name="name">Send Tax Invoice / Receipt by email</field>
+            <field name="res_model">mail.compose.message</field>
+            <field name="view_mode">form</field>
+            <field name="target">new</field>
+            <field name="context" eval="{
+                'mailing_document_based': True,
+                'mail_post_autofollow': True,
+                'default_composition_mode': 'mass_mail',
+                'default_template_id': ref('bm_tax_invoice_receipt.mail_template_data_tax_invoice_receipt'),
+                'default_email_layout_xmlid': 'mail.mail_notification_light',
+            }"/>
+            <field name="binding_model_id" ref="account.model_account_payment"/>
+            <field name="binding_view_types">list</field>
+        </record>
+    </data>
+
+    <delete model="ir.actions.act_window" id="account.account_send_payment_receipt_by_email_action"/>
+    <delete model="ir.actions.act_window" id="account.account_send_payment_receipt_by_email_action_multi"/>
+</odoo>

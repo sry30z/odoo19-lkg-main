@@ -1,0 +1,233 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <template id="report_common_styles">
+        <style>
+            <t t-set="primary_color" t-value="doc.company_id.report_primary_color or '#FDB813'"/>
+            <t t-set="secondary_color" t-value="doc.company_id.report_secondary_color or '#f2f2f2'"/>
+            <t t-set="alt_row_color" t-value="doc.company_id.report_alt_row_color or '#FFF9E6'"/>
+            <t t-set="text_color" t-value="doc.company_id.report_text_color or '#333333'"/>
+            <t t-set="border_color" t-value="doc.company_id.report_border_color or '#000000'"/>
+
+            /* ===== BASE FONT ===== */
+            body, * {
+                font-family: 'TH Sarabun New', 'Garuda', Tahoma, sans-serif !important;
+                line-height: 1.2 !important;
+            }
+
+            /* ===== PAGE ===== */
+            .th-page {
+                padding-top: 0px !important;
+            }
+
+            /* ===== HEADER LAYOUT ===== */
+            .th-header-table {
+                width: 100% !important;
+                border-collapse: collapse !important;
+                table-layout: fixed !important;
+                margin-bottom: 5px !important;
+            }
+            .th-header-left {
+                width: 55% !important;
+                vertical-align: top !important;
+            }
+            .th-header-right {
+                width: 45% !important;
+                vertical-align: top !important;
+                padding-left: 10px !important;
+            }
+            .th-company-logo {
+                max-height: 60px !important;
+                margin-bottom: 5px !important;
+            }
+            .th-company-name {
+                font-weight: bold !important;
+                font-size: 16px !important;
+            }
+            .th-company-address {
+                font-size: 13px !important;
+            }
+
+            /* ===== DOCUMENT INFO BOX (top-right) ===== */
+            .th-doc-box {
+                background-color: <t t-esc="secondary_color"/> !important;
+                border-radius: 8px !important;
+                padding: 10px !important;
+                border: 1px solid #cccccc !important;
+            }
+            .th-doc-title {
+                text-align: right !important;
+                font-weight: bold !important;
+                font-size: 18px !important;
+                color: <t t-esc="text_color"/> !important;
+                margin-bottom: 5px !important;
+            }
+
+            .th-doc-meta-table {
+                width: 100% !important;
+                font-size: 13px !important;
+            }
+            .th-doc-meta-label {
+                font-weight: bold !important;
+            }
+            .th-doc-meta-value {
+                text-align: right !important;
+            }
+
+            /* ===== PARTNER INFO BOX ===== */
+            .th-partner-box {
+                border: 1px solid #cccccc !important;
+                border-radius: 5px !important;
+                padding: 8px !important;
+                margin-bottom: 5px !important;
+            }
+            .th-partner-table {
+                width: 100% !important;
+                border-collapse: collapse !important;
+                font-size: 13px !important;
+            }
+            .th-partner-label-col {
+                width: 15% !important;
+                font-weight: bold !important;
+                vertical-align: top !important;
+            }
+            .th-partner-info-col {
+                width: 50% !important;
+                vertical-align: top !important;
+            }
+            .th-partner-name {
+                font-weight: bold !important;
+                font-size: 14px !important;
+            }
+            .th-partner-tax-col {
+                width: 35% !important;
+                vertical-align: top !important;
+                border-left: 1px solid #cccccc !important;
+                padding-left: 10px !important;
+            }
+
+            /* ===== MAIN ITEM TABLE ===== */
+            .th-table {
+                width: 100% !important;
+                border-collapse: separate !important;
+                border-spacing: 0 !important;
+                margin-top: 2mm !important;
+                table-layout: fixed !important;
+                border: 1px solid #000000 !important;
+                border-radius: 5px !important;
+                overflow: hidden !important;
+            }
+            .th-table thead th {
+                background-color: <t t-esc="primary_color"/> !important;
+                color: <t t-esc="text_color"/> !important;
+                padding: 1.5mm !important;
+                border-bottom: 1px solid <t t-esc="border_color"/> !important;
+                border-right: 1px solid <t t-esc="border_color"/> !important;
+                text-align: center !important;
+                font-size: 14pt !important;
+                font-weight: bold !important;
+            }
+            .th-table thead th:last-child {
+                border-right: none !important;
+            }
+            .th-table td {
+                padding: 1.5mm 2mm !important;
+                border-bottom: 1px solid <t t-esc="border_color"/> !important;
+                border-right: 1px solid <t t-esc="border_color"/> !important;
+                vertical-align: top !important;
+                font-size: 14pt !important;
+                color: <t t-esc="text_color"/> !important;
+            }
+            .th-table td:last-child {
+                border-right: none !important;
+            }
+            .th-table tbody tr:last-child td {
+                border-bottom: none !important;
+            }
+            .th-table tbody tr:nth-child(even) {
+                background-color: <t t-esc="alt_row_color"/> !important;
+            }
+
+            /* ===== SUMMARY SECTION ===== */
+            .th-summary-wrapper {
+                width: 100% !important;
+                border-collapse: collapse !important;
+                margin-top: 5px !important;
+                table-layout: fixed !important;
+            }
+            .th-notes-col {
+                width: 60% !important;
+                vertical-align: top !important;
+                padding: 5px !important;
+            }
+            .th-totals-col {
+                width: 40% !important;
+                vertical-align: top !important;
+                padding: 5px !important;
+            }
+            .th-notes-box {
+                border: 1px solid #cccccc !important;
+                padding: 8px !important;
+                border-radius: 5px !important;
+                background-color: #f9f9f9 !important;
+                font-size: 13px !important;
+            }
+            .th-notes-amounttext {
+                margin-top: 10px !important;
+                font-weight: bold !important;
+                border-top: 1px solid #cccccc !important;
+                padding-top: 5px !important;
+            }
+            .th-totals-table {
+                width: 100% !important;
+                border-collapse: separate !important;
+                border-spacing: 0 !important;
+                font-size: 13px !important;
+                border: 1px solid #000000 !important;
+                border-radius: 5px !important;
+                overflow: hidden !important;
+            }
+            .th-totals-table tr:last-child td {
+                border-bottom: none !important;
+            }
+            .th-totals-cell {
+                padding: 4px 8px !important;
+                border-bottom: 1px solid #e0e0e0 !important;
+            }
+            .th-total-grand-row {
+                background-color: <t t-esc="primary_color"/> !important;
+                font-weight: bold !important;
+            }
+            .th-total-grand-cell {
+                padding: 5px 8px !important;
+                border-top: 1px solid <t t-esc="border_color"/> !important;
+                border-bottom: 1px solid <t t-esc="border_color"/> !important;
+            }
+            .th-wht-row {
+                color: #cc0000 !important;
+            }
+            .th-wht-row td {
+                border-bottom: 1px solid #e0e0e0 !important;
+            }
+            .th-net-row {
+                background-color: <t t-esc="primary_color"/> !important;
+                font-weight: bold !important;
+            }
+            .th-net-cell {
+                padding: 5px 8px !important;
+                border-top: 1px solid <t t-esc="border_color"/> !important;
+            }
+
+            /* ===== FOOTER / PAGE NUMBER ===== */
+            .th-page-number {
+                font-size: 10px !important;
+                margin-top: 5px !important;
+                color: <t t-esc="text_color"/> !important;
+                text-align: center !important;
+            }
+
+            /* ===== UTILITIES ===== */
+            .text-right { text-align: right !important; }
+            .text-center { text-align: center !important; }
+        </style>
+    </template>
+</odoo>

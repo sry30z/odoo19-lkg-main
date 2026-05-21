@@ -1,0 +1,17 @@
+<odoo>
+    <record id="action_wht_report_pnd3" model="ir.actions.report">
+        <field name="name">PND3 Report</field>
+        <field name="model">account.payment</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">my_wht.report_pnd3</field>
+        <field name="print_report_name">'PND3 Report'</field>
+    </record>
+
+    <record id="action_wht_report_pnd53" model="ir.actions.report">
+        <field name="name">PND53 Report</field>
+        <field name="model">account.payment</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">my_wht.report_pnd53</field>
+        <field name="print_report_name">'PND53 Report'</field>
+    </record>
+</odoo>

@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+<data noupdate="0">
+
+    <!-- Categories -->
+    <record id="module_category_wht" model="ir.module.category">
+        <field name="name">Withholding Tax</field>
+        <field name="sequence">15</field>
+    </record>
+
+    <!-- Groups -->
+    <record id="group_wht_user" model="res.groups">
+        <field name="name">User</field>
+        <field name="category_id" ref="module_category_wht"/>
+        <field name="implied_ids" eval="[(4, ref('base.group_user'))]"/>
+    </record>
+
+    <record id="group_wht_accountant" model="res.groups">
+        <field name="name">Accountant</field>
+        <field name="category_id" ref="module_category_wht"/>
+        <field name="implied_ids" eval="[(4, ref('account_WHT.group_wht_user'))]"/>
+    </record>
+
+    <record id="group_wht_administrator" model="res.groups">
+        <field name="name">Administrator</field>
+        <field name="category_id" ref="module_category_wht"/>
+        <field name="implied_ids" eval="[(4, ref('account_WHT.group_wht_accountant'))]"/>
+    </record>
+
+    <!-- Record Rules for Multi-company -->
+    <record id="account_wht_comp_rule" model="ir.rule">
+        <field name="name">WHT multi-company</field>
+        <field name="model_id" ref="model_account_wht"/>
+        <field name="global" eval="True"/>
+        <field name="domain_force">['|',('company_id','=',False),('company_id', 'in', company_ids)]</field>
+    </record>
+
+    <record id="account_wht_certificate_comp_rule" model="ir.rule">
+        <field name="name">WHT Certificate multi-company</field>
+        <field name="model_id" ref="model_account_wht_certificate"/>
+        <field name="global" eval="True"/>
+        <field name="domain_force">['|',('company_id','=',False),('company_id', 'in', company_ids)]</field>
+    </record>
+
+    <record id="account_wht_certificate_line_comp_rule" model="ir.rule">
+        <field name="name">WHT Certificate Line multi-company</field>
+        <field name="model_id" ref="model_account_wht_certificate_line"/>
+        <field name="global" eval="True"/>
+        <field name="domain_force">['|',('certificate_id.company_id','=',False),('certificate_id.company_id', 'in', company_ids)]</field>
+    </record>
+
+    <record id="account_move_tax_comp_rule" model="ir.rule">
+        <field name="name">Account Move Tax multi-company</field>
+        <field name="model_id" ref="model_account_move_tax"/>
+        <field name="global" eval="True"/>
+        <field name="domain_force">['|',('company_id','=',False),('company_id', 'in', company_ids)]</field>
+    </record>
+
+    <record id="account_move_wht_comp_rule" model="ir.rule">
+        <field name="name">Account Move WHT multi-company</field>
+        <field name="model_id" ref="model_account_move_wht"/>
+        <field name="global" eval="True"/>
+        <field name="domain_force">['|',('move_id.company_id','=',False),('move_id.company_id', 'in', company_ids)]</field>
+    </record>
+
+    <record id="account_move_tax_lines_comp_rule" model="ir.rule">
+        <field name="name">Account Move Tax Lines multi-company</field>
+        <field name="model_id" ref="model_account_move_tax_lines"/>
+        <field name="global" eval="True"/>
+        <field name="domain_force">['|',('move_id.company_id','=',False),('move_id.company_id', 'in', company_ids)]</field>
+    </record>
+
+</data>
+</odoo>

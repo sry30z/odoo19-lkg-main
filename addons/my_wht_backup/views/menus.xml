@@ -1,0 +1,9 @@
+<odoo>
+    <menuitem id="menu_wht_root" name="Withholding Tax" sequence="10"/>
+
+    <menuitem id="menu_wht_configuration" name="Configuration" parent="menu_wht_root" sequence="10"/>
+    <menuitem id="menu_wht_tax" name="WHT Taxes" parent="menu_wht_configuration" action="action_wht_tax" sequence="10"/>
+
+    <menuitem id="menu_wht_operations" name="Operations" parent="menu_wht_root" sequence="20"/>
+    <menuitem id="menu_wht_certificates" name="WHT Certificates" parent="menu_wht_operations" action="action_wht_certificates" sequence="10"/>
+</odoo>

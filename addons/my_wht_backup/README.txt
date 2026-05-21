@@ -1,0 +1,1 @@
+สำรองไฟล์ my_wht ทั้งหมดก่อนลบ (auto-backup by Copilot)

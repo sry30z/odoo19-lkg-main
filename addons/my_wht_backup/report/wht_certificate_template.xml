@@ -1,0 +1,16 @@
+<template id="report_wht_certificate">
+    <t t-call="web.html_container">
+        <t t-foreach="docs" t-as="doc">
+            <div class="page">
+                <h2>ใบรับรองการหักภาษี ณ ที่จ่าย (50 ทวิ)</h2>
+                <p>ผู้จ่าย: <t t-esc="doc.partner_id.name"/></p>
+                <p>ผู้รับ: <t t-esc="doc.company_id.name"/></p>
+                <p>เลขประจำตัวผู้เสียภาษี: <t t-esc="doc.partner_id.tax_id"/></p>
+                <p>ประเภทเงินได้: <t t-esc="doc.wht_id.income_type"/></p>
+                <p>จำนวนเงิน: <t t-esc="doc.amount"/></p>
+                <p>ภาษีหัก ณ ที่จ่าย: <t t-esc="doc.wht_amount"/></p>
+                <p>วันที่: <t t-esc="doc.payment_date"/></p>
+            </div>
+        </t>
+    </t>
+</template>
