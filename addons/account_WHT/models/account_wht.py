@@ -227,6 +227,8 @@ class AccountWHTCertificate(models.Model):
                         l_base = inv_line.price_subtotal
                         
                         if move.wht_pay_type == 'gross_up_forever':
+                            if abs(1 - rate) < 1e-9:
+                                continue
                             l_base = l_base / (1 - rate)
                         elif move.wht_pay_type == 'gross_up_once':
                             l_base = l_base + (l_base * rate)

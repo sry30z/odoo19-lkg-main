@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 from odoo import fields, models, api, _
+from odoo.exceptions import UserError
 
 
 class AccountMove(models.Model):
@@ -28,10 +29,9 @@ class AccountMove(models.Model):
         ('gross_up_once', 'ออกให้ครั้งเดียว'),
     ], string='WHT Pay Type', default='normal', tracking=True)
 
-    # FORCE STATUS TO PAID: Override the selection or compute logic to eliminate 'in_payment'
-    payment_state = fields.Selection(
-        selection_add=[('in_payment', 'Paid')], # Map the label 'In Payment' to 'Paid' for display
-    )
+    # Note: Removed unsafe override of payment_state selection that forced
+    # 'in_payment' to display as 'Paid'. This was hiding unreconciled payments
+    # from bank reconciliation and producing incorrect aging reports.
 
 
     taxes_line_ids = fields.One2many('account.move.tax.lines', 'move_id')
@@ -64,6 +64,8 @@ class AccountMove(models.Model):
                         line_wht_amount = 0.0
                         if rec.type_tax_use != 'tax':
                             if move.wht_pay_type == 'gross_up_forever':
+                                if abs(1 - rate) < 1e-9:
+                                    raise UserError(_("WHT rate cannot be 100%% for gross-up forever calculation (tax: %s).") % rec.name)
                                 base = line.price_subtotal / (1 - rate)
                                 line_wht_amount = round(base * rate, 2)
                                 wht_base_total += base
@@ -190,6 +192,8 @@ class AccountMove(models.Model):
         if wht.type_tax_use != 'tax':
             base = line.price_subtotal
             if self.wht_pay_type == 'gross_up_forever':
+                if abs(1 - rate) < 1e-9:
+                    raise UserError(_("WHT rate cannot be 100%% for gross-up forever calculation (tax: %s).") % wht.name)
                 base = base / (1 - rate)
                 wht_amount = round(base * rate, 2)
                 wht_expense_amount = wht_amount
@@ -204,6 +208,8 @@ class AccountMove(models.Model):
 
             base = tax_amount
             if self.wht_pay_type == 'gross_up_forever':
+                if abs(1 - rate) < 1e-9:
+                    raise UserError(_("WHT rate cannot be 100%% for gross-up forever calculation (tax: %s).") % wht.name)
                 base = base / (1 - rate)
                 wht_amount = round(base * rate, 2)
                 wht_expense_amount = wht_amount
@@ -309,6 +315,8 @@ class AccountMove(models.Model):
                     if rec.type_tax_use != 'tax':
                         base = line.price_subtotal
                         if self.wht_pay_type == 'gross_up_forever':
+                            if abs(1 - rate) < 1e-9:
+                                raise UserError(_("WHT rate cannot be 100%% for gross-up forever calculation (tax: %s).") % rec.name)
                             base = base / (1 - rate)
                         elif self.wht_pay_type == 'gross_up_once':
                             base = base + (base * rate)
@@ -323,6 +331,8 @@ class AccountMove(models.Model):
                         
                         base_tax = tax_amount
                         if self.wht_pay_type == 'gross_up_forever':
+                            if abs(1 - rate) < 1e-9:
+                                raise UserError(_("WHT rate cannot be 100%% for gross-up forever calculation (tax: %s).") % rec.name)
                             base_tax = base_tax / (1 - rate)
                         elif self.wht_pay_type == 'gross_up_once':
                             base_tax = base_tax + (base_tax * rate)
@@ -351,11 +361,6 @@ class AccountMove(models.Model):
     @api.depends('line_ids.matched_debit_ids', 'line_ids.matched_credit_ids', 'line_ids.reconciled')
     def _compute_payment_state(self):
         super(AccountMove, self)._compute_payment_state()
-
-        for move in self:
-            # Force 'paid' label if in_payment (display-only change, no DB write)
-            if move.payment_state == 'in_payment':
-                move.payment_state = 'paid'
 
     def _create_wht_certificate_if_needed(self):
         """Safe helper to create WHT Certificate when a bill becomes fully paid.
@@ -395,6 +400,8 @@ class AccountMove(models.Model):
                     l_base = line.price_subtotal
 
                     if move.wht_pay_type == 'gross_up_forever':
+                        if abs(1 - rate) < 1e-9:
+                            continue
                         l_base = l_base / (1 - rate)
                     elif move.wht_pay_type == 'gross_up_once':
                         l_base = l_base + (l_base * rate)
@@ -426,7 +433,8 @@ class AccountMove(models.Model):
                     'line_ids': cert_line_vals,
                 })
                 new_cert._onchange_partner_id()
-                new_cert.action_confirm()
+                if new_cert.partner_taxid and new_cert.line_ids:
+                    new_cert.action_confirm()
 
 
 class AccountMoveLine(models.Model):
