@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 from odoo import fields, models, api, _, Command
+from odoo.exceptions import UserError
 
 
 class AccountPayment(models.Model):
@@ -141,6 +142,8 @@ class AccountPayment(models.Model):
                                         rate = wht.amount / 100.0
                                         pay_type = getattr(invoice, 'wht_pay_type', 'normal')
                                         if pay_type == 'gross_up_forever':
+                                            if abs(1 - rate) < 1e-9:
+                                                raise UserError(_("WHT rate cannot be 100%% for gross-up forever calculation (tax: %s).") % wht.name)
                                             base = line.price_subtotal / (1 - rate)
                                         elif pay_type == 'gross_up_once':
                                             base = line.price_subtotal * (1 + rate)
@@ -238,18 +241,19 @@ class AccountPayment(models.Model):
             debit = wht_amount_company
             credit = 0.0
 
-        res.append(
-            {
-                "name": wht.name,
-                "currency_id": payment_currency.id,
-                "debit": debit,
-                "credit": credit,
-                "amount_currency": wht_amount_ded if debit > 0 else -wht_amount_ded,
-                "date_maturity": payment.date,
-                "partner_id": payment.partner_id.commercial_partner_id.id,
-                "account_id": wht.account_id.id,
-            }
-        )
+        if debit or credit:
+            res.append(
+                {
+                    "name": wht.name,
+                    "currency_id": payment_currency.id,
+                    "debit": debit,
+                    "credit": credit,
+                    "amount_currency": wht_amount_ded if debit > 0 else -wht_amount_ded,
+                    "date_maturity": payment.date,
+                    "partner_id": payment.partner_id.commercial_partner_id.id,
+                    "account_id": wht.account_id.id,
+                }
+            )
 
         if inv and inv.move_type in [
             "out_invoice",
@@ -324,11 +328,14 @@ class AccountPayment(models.Model):
                                     credit_line["credit"] - total_wh_amount, 2
                                 )
                                 if debit_amount:
+                                    # Only adjust the FIRST debit line (payable) to maintain balance
+                                    adjusted = False
                                     for inv in move_vals[i]["line_ids"]:
                                         vals = inv[2] if isinstance(inv, (list, tuple)) and len(inv) > 2 else inv
-                                        if vals.get("debit", 0.0) > 0.0:
+                                        if vals.get("debit", 0.0) > 0.0 and not adjusted:
                                             vals["debit"] = debit_amount
                                             vals["amount_currency"] = debit_amount
+                                            adjusted = True
                                     first_line = move_vals[i]["line_ids"][0]
                                     first_vals = first_line[2] if isinstance(first_line, (list, tuple)) and len(first_line) > 2 else first_line
                                     

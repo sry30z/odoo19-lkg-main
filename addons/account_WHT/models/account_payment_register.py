@@ -1,4 +1,5 @@
-from odoo import fields, models, api
+from odoo import fields, models, api, _
+from odoo.exceptions import UserError
 
 class AccountPaymentRegister(models.TransientModel):
     _inherit = 'account.payment.register'
@@ -141,6 +142,8 @@ class AccountPaymentRegister(models.TransientModel):
                         base_amount = line.price_subtotal * ratio
                         
                         if self.wht_pay_type == 'gross_up_forever':
+                            if abs(1 - rate) < 1e-9:
+                                raise UserError(_("WHT rate cannot be 100%% for gross-up forever calculation (tax: %s).") % wht.name)
                             base_amount = base_amount / (1 - rate)
                         elif self.wht_pay_type == 'gross_up_once':
                             base_amount = base_amount + (base_amount * rate)
@@ -164,6 +167,8 @@ class AccountPaymentRegister(models.TransientModel):
                             base_amount = line.price_subtotal * ratio
                             
                             if self.wht_pay_type == 'gross_up_forever':
+                                if abs(1 - rate) < 1e-9:
+                                    raise UserError(_("WHT rate cannot be 100%% for gross-up forever calculation (tax: %s).") % wht.name)
                                 base_amount = base_amount / (1 - rate)
                             elif self.wht_pay_type == 'gross_up_once':
                                 base_amount = base_amount + (base_amount * rate)
