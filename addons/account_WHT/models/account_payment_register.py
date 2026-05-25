@@ -1,5 +1,8 @@
 from odoo import fields, models, api, _
 from odoo.exceptions import UserError
+import logging
+
+_logger = logging.getLogger(__name__)
 
 class AccountPaymentRegister(models.TransientModel):
     _inherit = 'account.payment.register'
@@ -230,12 +233,63 @@ class AccountPaymentRegister(models.TransientModel):
 
 
     def _create_payments(self):
+        """
+        Payment-centric WHT certificate creation.
+
+        NEW FLOW (PART 5 — Grouped Payment Fix):
+        1. Call super() to create payments (standard Odoo flow)
+        2. Force ORM refresh
+        3. Create ONE WHT certificate for the ENTIRE wizard batch, not one per payment.
+           This correctly handles all scenarios:
+           - Grouped payment (1 payment, N bills): 1 cert linked to all bills ✅
+           - Non-grouped payment (N payments, N bills): still 1 cert for all bills ✅
+             (Thai legal: one payment operation = one WHT certificate)
+           Uses the first (primary) payment as the cert's payment_id reference.
+           Passes all payment IDs in context for idempotency guard.
+        """
+        _logger.info("[WHT PAYMENT] START: Creating payments via Register Payment")
+
+        # STEP 1: Create payments (standard Odoo flow)
         payments = super()._create_payments()
-        # ส่งประเภท ภ.ง.ด. ไปบันทึกในรายการจ่ายเงิน
-        # (WHT Certificate จะถูกสร้างโดย action_post ใน account.payment แทน)
-        if self.is_wht and self.wht_amount > 0:
-            for payment in payments:
-                payment.wht_type = self.wht_type
+
+        if not payments:
+            _logger.info("[WHT PAYMENT] No payments created - skipping WHT finalization")
+            return payments
+
+        _logger.info("[WHT PAYMENT] Created %d payment(s)", len(payments))
+
+        # STEP 2: Force ORM refresh to ensure move_id / state are populated
+        self.env.flush_all()
+        payments.invalidate_recordset(['move_id', 'state', 'payment_type'])
+
+        # STEP 3: Create ONE certificate per wizard batch (not per individual payment).
+        # Skip entirely when the wizard carries no WHT lines.
+        if not getattr(self, 'is_wht', False) or not getattr(self, 'wht_line_ids', False):
+            _logger.info("[WHT PAYMENT] No WHT lines on wizard — skipping cert creation")
+            _logger.info("[WHT PAYMENT] END: Payment register flow completed")
+            return payments
+
+        primary_payment = payments[0]
+        _logger.info(
+            "[WHT PAYMENT] Creating 1 WHT cert for batch: %d payment(s), primary=%s",
+            len(payments), primary_payment.name,
+        )
+        try:
+            primary_payment.with_context(
+                wht_wizard=self,
+                wht_wizard_id=self.id,
+                # Pass ALL payment IDs so idempotency check covers the full batch.
+                # Prevents duplicate certs when the same wizard is retried.
+                wht_all_payment_ids=payments.ids,
+            )._create_wht_certificate_after_payment_creation()
+        except Exception as e:
+            _logger.exception(
+                "[WHT PAYMENT] ERROR: WHT cert creation failed for primary payment %s: %s",
+                primary_payment.name, str(e),
+            )
+            # CRITICAL: never re-raise — payment must succeed regardless of WHT failure
+
+        _logger.info("[WHT PAYMENT] END: Payment register flow completed")
         return payments
 
 class AccountPaymentRegisterWhtLine(models.TransientModel):

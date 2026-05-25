@@ -49,13 +49,19 @@ class AccountPayment(models.Model):
             return
 
         # ── Idempotency: abort if certificate already exists ──────────────────
+        # wht_all_payment_ids is injected by _create_payments() when the wizard
+        # produces multiple payments (non-grouped flow).  Checking ALL IDs prevents
+        # duplicate certs when the same wizard is retried after a partial failure.
+        _all_payment_ids = list(self.env.context.get('wht_all_payment_ids') or [self.id])
         existing = self.env['account.wht.certificate'].search([
-            ('payment_id', '=', self.id),
+            ('payment_id', 'in', _all_payment_ids),
             ('state', '!=', 'cancel'),
         ], limit=1)
         if existing:
-            _logger.info("[WHT SKIP] Certificate %s already exists for payment %s",
-                         existing.certificate_no, self.name)
+            _logger.info(
+                "[WHT SKIP] Certificate %s already exists for payment batch %s",
+                existing.certificate_no, _all_payment_ids,
+            )
             return
 
         # ── All creation wrapped in try/except — payment must NEVER fail ──────
@@ -295,9 +301,10 @@ class AccountPayment(models.Model):
 
     def _compute_wht_certificate_count(self):
         for payment in self:
-            payment.wht_certificate_count = self.env[
-                "account.wht.certificate"
-            ].search_count([("payment_id", "=", payment.id)])
+            payment.wht_certificate_count = self.env["account.wht.certificate"].search_count([
+                ("payment_id", "=", payment.id),
+                ("state", "!=", "cancel"),
+            ])
 
     def action_view_wht_certificates(self):
         self.ensure_one()
@@ -306,7 +313,7 @@ class AccountPayment(models.Model):
             "type": "ir.actions.act_window",
             "res_model": "account.wht.certificate",
             "view_mode": "list,form",
-            "domain": [("payment_id", "=", self.id)],
+            "domain": [("payment_id", "=", self.id), ("state", "!=", "cancel")],
             "context": {
                 "default_payment_id": self.id,
                 "default_partner_id": self.partner_id.id,
