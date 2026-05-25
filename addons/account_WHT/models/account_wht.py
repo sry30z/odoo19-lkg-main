@@ -309,49 +309,6 @@ class AccountWHTCertificate(models.Model):
         for rec in self:
             rec.custom_key = rec._generate_custom_key()
     
-    def action_confirm(self):
-        """
-        Confirm WHT certificate with idempotency key validation.
-        
-        Ensures no duplicate certificates are created by:
-        1. Computing custom key before confirmation
-        2. Checking for existing certificates with same business key
-        3. Raising clear error if duplicate detected
-        """
-        _logger.info("[WHT CERT] Confirming %d WHT certificate(s)", len(self))
-        
-        for rec in self:
-            _logger.info(
-                "[WHT CERT] Confirming certificate %s (ID: %d, State: %s, Partner: %s)",
-                rec.certificate_no, rec.id, rec.state, rec.partner_id.name if rec.partner_id else 'N/A'
-            )
-            
-            # Ensure custom key is computed
-            if not rec.custom_key:
-                _logger.info("[WHT CERT] Computing custom key for certificate %s", rec.certificate_no)
-                rec.custom_key = rec._generate_custom_key()
-                _logger.info(
-                    "[WHT CERT] Custom key generated: %s",
-                    rec.custom_key[:50] + '...' if len(rec.custom_key) > 50 else rec.custom_key
-                )
-            else:
-                _logger.info(
-                    "[WHT CERT] Custom key already exists: %s",
-                    rec.custom_key[:50] + '...' if len(rec.custom_key) > 50 else rec.custom_key
-                )
-        
-        # Call parent confirm with idempotency check
-        try:
-            result = super(AccountWHTCertificate, self).action_confirm()
-            _logger.info("[WHT CERT] Certificates confirmed successfully")
-            return result
-        except UserError as e:
-            _logger.error("[WHT CERT] Confirmation failed (UserError): %s", str(e))
-            raise
-        except Exception as e:
-            _logger.error("[WHT CERT] Unexpected error during confirmation: %s", str(e), exc_info=True)
-            raise
-
     @api.onchange("partner_id")
     def _onchange_partner_id(self):
         for rec in self:
@@ -442,6 +399,10 @@ class AccountWHTCertificate(models.Model):
                 raise UserError(_("Cannot confirm a certificate that is not in draft state"))
             if rec.certificate_no not in ('New', 'Draft') and not (rec.certificate_no and str(rec.certificate_no).startswith('New -')):
                 raise UserError(_("Certificate number already assigned"))
+
+            # Ensure custom key is computed before confirming
+            if not rec.custom_key:
+                rec.custom_key = rec._generate_custom_key()
 
             # Use database lock for sequence generation
             try:
@@ -747,15 +708,6 @@ class AccountWHTCertificateLine(models.Model):
                 if not rec.income_type_text:
                     rec.income_type_text = ''
     
-    def write(self, vals):
-        """Prevent modification of critical fields when parent certificate is confirmed"""
-        for rec in self:
-            if rec.certificate_id.state == 'done' and not self.env.context.get('allow_historical_edit'):
-                # List of fields that cannot be modified when parent is confirmed
-                protected_fields = ['invoice_move_id', 'income_type_id', 'base_amount', 'tax_amount', 'pay_date']
-                if any(field in vals for field in protected_fields):
-                    raise UserError(_("Cannot modify %s for lines of confirmed certificate. Please cancel the certificate first.") % ', '.join(protected_fields))
-        return super(AccountWHTCertificateLine, self).write(vals)
     def write(self, vals):
         for rec in self:
             if rec.certificate_id.state == 'done' and not self.env.context.get('allow_historical_edit'):

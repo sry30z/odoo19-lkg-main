@@ -14,8 +14,9 @@
     "maintainer": "One Stop Odoo",
     'license': 'OPL-1',
     'category': 'Accounting',
-    'version': '1.5',
+    'version': '1.5.1',
     'depends': ['account', 'sale', 'purchase', 'web', 'bm_tax_invoice_receipt'],
+    'models': ['models', 'services'],
     'data': [
         'data/wht_data.xml',
         'data/ir_sequence_data.xml',
@@ -44,6 +45,10 @@
         'reports/report_payment_receipt_action.xml',
         'reports/report_payment_receipt_templates.xml',
     ],
+    
+    # Migration script for uniqueness constraints upgrade
+    'post_init_hook': 'migrations.15.0.0.1_upgrade_uniqueness_constraints.migrate',
+    
     'assets': {
         'web.report_assets_common': [
             'account_WHT/static/src/css/report_common.css',
