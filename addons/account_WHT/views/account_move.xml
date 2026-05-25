@@ -8,7 +8,7 @@
             <field name="arch" type="xml">
                 <!-- Removed domain to allow both sale/purchase WHT selection -->
                 <xpath expr="//field[@name='invoice_line_ids']//field[@name='tax_ids']" position="after">
-                    <field name="wht_id" options="{'no_create': True}" optional="show"/>
+                    <field name="wht_id" options="{'no_create': True}" optional="show" help="เลือกภาษีหัก ณ จ่ายที่จะใช้"/>
                     <field name="wht_tax_ids" widget="many2many_tags" options="{'no_create': True}" optional="hide" force_save="1" />
                     <field name="wht_amount" optional="hide"/>
                     <field name="is_wht_line" invisible="1" />
@@ -43,11 +43,18 @@
                             </field>
                         </div>
                         <group class="oe_subtotal_footer oe_right" invisible="move_type not in ('out_invoice', 'out_refund', 'in_invoice', 'in_refund')">
-                            <field name="wht_pay_type" widget="selection" />
-                            <field name="wht_base_amount" readonly="1" force_save="1" />
-                            <field name="wht_amount" readonly="1" force_save="1" />
-                            <field name="wht_net_total" class="oe_subtotal_footer_separator" readonly="1" force_save="1" />
-                            <field name="amount_due" class="oe_subtotal_footer_separator" readonly="1" force_save="1" />
+                            <field name="wht_pay_type" widget="selection" help="ประเภทการหักภาษี: หักฯจ่าย = หักออกจากยอดจ่าย, ออกให้ = จ่ายเต็มยอดแล้วหักภาษีเพิ่ม" />
+                            <field name="wht_base_amount" readonly="1" force_save="1" help="ฐานคำนวณภาษีหัก ณ จ่าย"/>
+                            <field name="wht_amount" readonly="1" force_save="1" help="ยอดภาษีหัก ณ จ่าย"/>
+                            <field name="wht_net_total" class="oe_subtotal_footer_separator" readonly="1" force_save="1" help="ยอดสุทธิหลังหักภาษีหัก ณ จ่าย"/>
+                            <field name="amount_due" class="oe_subtotal_footer_separator" readonly="1" force_save="1" help="ยอดที่ต้องชำระ"/>
+                            <!-- SME payment status label — display-only, never overrides accounting -->
+                            <field name="payment_status_display_label"
+                                   string="สถานะการชำระ"
+                                   readonly="1"
+                                   class="oe_subtotal_footer_separator"
+                                   invisible="move_type not in ('in_invoice', 'in_refund', 'out_invoice', 'out_refund') or payment_state == 'not_paid'"
+                                   help="สถานะการชำระเงิน (แสดงเพื่อ SME — ไม่กระทบการบัญชี)" />
                         </group>
                     </div>
                 </xpath>

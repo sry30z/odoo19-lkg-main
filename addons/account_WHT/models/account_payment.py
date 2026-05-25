@@ -1,32 +1,272 @@
 # -*- coding: utf-8 -*-
+import logging
 from odoo import fields, models, api, _, Command
 from odoo.exceptions import UserError
+
+_logger = logging.getLogger(__name__)
 
 
 class AccountPayment(models.Model):
     _inherit = "account.payment"
 
-    def action_cancel(self):
-        res = super(AccountPayment, self).action_cancel()
-        for payment in self:
-            certs = self.env['account.wht.certificate'].search([
-                ('payment_id', '=', payment.id),
-                ('state', '!=', 'cancel')
-            ])
-            if certs:
-                certs.action_cancel()
-        return res
+    def _create_wht_certificate_after_payment_creation(self):
+        """
+        Payment-Centric WHT Certificate Creation (Production-Grade).
 
-    def action_post(self):
-        res = super(AccountPayment, self).action_post()
-        # Trigger WHT certificate creation for all bills reconciled during this posting.
-        # This covers the "Register Payment from Bill" flow.
-        for payment in self:
-            if payment.payment_type == 'outbound':
-                bills = payment.reconciled_bill_ids
-                if bills:
-                    bills._create_wht_certificate_if_needed()
-        return res
+        Architecture:
+        - PRIMARY bill source: wizard.line_ids.mapped('move_id') — reliable even without
+          active_ids forwarding, because the wizard record still lives in the same request.
+        - Fallback: context active_ids (for custom callers that set it explicitly).
+        - Snapshots all partner/bill metadata at creation time so legal records never
+          drift when master data changes later.
+        - Multi-bill safe: each detail line carries invoice_move_id for traceability.
+        - Idempotent: safe to retry; duplicate check runs before any write.
+        - NEVER raises — WHT failure must not roll back the payment.
+        """
+        _logger.info("[WHT CERT] Processing certificate for payment %s (id=%s)",
+                     self.name or '', self.id)
+
+        # ── Guard: only outbound vendor payments ──────────────────────────────
+        if self.payment_type != 'outbound':
+            return
+        if self.partner_type not in ('supplier', 'vendor'):
+            return
+
+        # ── Guard: get wizard from context ────────────────────────────────────
+        wizard_id = self.env.context.get('wht_wizard_id')
+        if not wizard_id:
+            _logger.info("[WHT SKIP] No wht_wizard_id in context for payment %s", self.name)
+            return
+
+        wizard = self.env['account.payment.register'].browse(wizard_id).exists()
+        if not wizard:
+            _logger.info("[WHT SKIP] Wizard %s no longer exists for payment %s",
+                         wizard_id, self.name)
+            return
+
+        if not getattr(wizard, 'is_wht', False) or not wizard.wht_line_ids:
+            _logger.info("[WHT SKIP] Wizard has no WHT lines for payment %s", self.name)
+            return
+
+        # ── Idempotency: abort if certificate already exists ──────────────────
+        existing = self.env['account.wht.certificate'].search([
+            ('payment_id', '=', self.id),
+            ('state', '!=', 'cancel'),
+        ], limit=1)
+        if existing:
+            _logger.info("[WHT SKIP] Certificate %s already exists for payment %s",
+                         existing.certificate_no, self.name)
+            return
+
+        # ── All creation wrapped in try/except — payment must NEVER fail ──────
+        try:
+            # STEP 1 ── Discover source bills ──────────────────────────────────
+            invoices = self.env['account.move']
+
+            # Primary: wizard.line_ids are the move lines being registered.
+            # .mapped('move_id') gives the actual vendor bills.
+            if hasattr(wizard, 'line_ids') and wizard.line_ids:
+                invoices = wizard.line_ids.mapped('move_id').filtered(
+                    lambda m: m.move_type in (
+                        'in_invoice', 'out_invoice', 'in_refund', 'out_refund'
+                    ) and m.state == 'posted'
+                )
+                _logger.info("[WHT BILLS] %d bill(s) via wizard.line_ids for payment %s",
+                             len(invoices), self.name)
+
+            # Fallback: context active_ids (custom callers / edge cases)
+            if not invoices:
+                active_ids = self.env.context.get('active_ids', [])
+                active_model = self.env.context.get('active_model', '')
+                if active_ids:
+                    if active_model == 'account.move.line':
+                        move_lines = self.env['account.move.line'].browse(active_ids).exists()
+                        invoices = move_lines.mapped('move_id').filtered(
+                            lambda m: m.move_type in (
+                                'in_invoice', 'out_invoice', 'in_refund', 'out_refund'
+                            )
+                        )
+                    else:
+                        invoices = self.env['account.move'].browse(active_ids).filtered(
+                            lambda m: m.move_type in (
+                                'in_invoice', 'out_invoice', 'in_refund', 'out_refund'
+                            )
+                        )
+                    if invoices:
+                        _logger.info(
+                            "[WHT BILLS] %d bill(s) via context.active_ids (fallback) for payment %s",
+                            len(invoices), self.name,
+                        )
+
+            if not invoices:
+                _logger.warning(
+                    "[WHT WARN] No source bills found for payment %s — "
+                    "certificate will be created without bill linkage",
+                    self.name,
+                )
+
+            # STEP 2 ── Snapshot partner metadata ─────────────────────────────
+            partner = self.partner_id
+            partner_name_snapshot = partner.name or '' if partner else ''
+            partner_taxid_snapshot = partner.vat or '' if partner else ''
+            partner_address_snapshot = ''
+            if partner:
+                try:
+                    partner_address_snapshot = partner._display_address(
+                        without_company=True
+                    )
+                except Exception:
+                    partner_address_snapshot = ', '.join(filter(None, [
+                        partner.street, partner.street2,
+                        partner.city,
+                        partner.state_id.name if partner.state_id else '',
+                        partner.zip,
+                        partner.country_id.name if partner.country_id else '',
+                    ]))
+
+            # STEP 3 ── Snapshot bill metadata ────────────────────────────────
+            bill_names = sorted(
+                inv.name for inv in invoices
+                if inv.name and inv.name not in ('New', '/', False)
+            )
+            bill_reference_snapshot = ', '.join(bill_names) if bill_names                 else (self.ref or self.name or '')
+
+            invoice_dates = sorted(
+                inv.invoice_date for inv in invoices if inv.invoice_date
+            )
+            invoice_date_snapshot = invoice_dates[0] if invoice_dates else self.date
+
+            branch_snapshot = self.env.company.name or ''
+
+            # STEP 4 ── Build detail lines ─────────────────────────────────────
+            lines_vals = self._build_wht_certificate_detail_lines(wizard, invoices)
+
+            # STEP 5 ── Source traceability (invoice line IDs) ─────────────────
+            source_line_ids = []
+            for inv in invoices:
+                source_line_ids.extend(inv.invoice_line_ids.ids)
+
+            # STEP 6 ── Assemble certificate values ───────────────────────────
+            cert_vals = {
+                # Core
+                'payment_id':  self.id,
+                'partner_id':  partner.id if partner else False,
+                'issue_date':  self.date,
+                'pay_date':    self.date,
+                'wht_type':    wizard.wht_type or 'pnd53',
+                'wht_pay_type': wizard.wht_pay_type or 'normal',
+                'state':       'draft',
+                # Partner metadata — snapshot values set explicitly (no onchange in ORM)
+                'partner_taxid':    partner_taxid_snapshot,
+                'partner_address':  partner_address_snapshot,
+                # Immutable historical snapshots
+                'partner_name_snapshot':  partner_name_snapshot,
+                'bill_reference_snapshot': bill_reference_snapshot,
+                'branch_snapshot':        branch_snapshot,
+                'invoice_date_snapshot':  invoice_date_snapshot,
+                # Reference field for display / report
+                'wht_reference': bill_reference_snapshot,
+                # Detail lines
+                'line_ids': lines_vals,
+            }
+
+            if invoices:
+                cert_vals['move_ids'] = [(6, 0, invoices.ids)]
+            if source_line_ids:
+                cert_vals['source_move_line_ids'] = [(6, 0, source_line_ids)]
+
+            # STEP 7 ── Create + confirm ───────────────────────────────────────
+            _logger.info(
+                "[WHT CERT] Creating certificate: partner=%s, bills=%s, lines=%d",
+                partner_name_snapshot, bill_reference_snapshot, len(lines_vals),
+            )
+            certificate = self.env['account.wht.certificate'].create(cert_vals)
+            certificate.action_confirm()
+            _logger.info(
+                "[WHT CERT] Created and confirmed %s for payment %s",
+                certificate.certificate_no, self.name,
+            )
+
+        except Exception as e:
+            _logger.exception(
+                "[WHT ERROR] Failed to create WHT certificate for payment %s: %s",
+                self.name or self.id, str(e),
+            )
+            # CRITICAL: never re-raise — payment must succeed regardless
+
+    def _build_wht_certificate_detail_lines(self, wizard, invoices):
+        """
+        Build WHT certificate detail lines from wizard WHT lines + source bills.
+
+        Strategy
+        --------
+        * wizard.wht_line_ids is the authoritative source for **amounts**
+          (already computed by the register wizard, including partial-payment scaling).
+        * Bills are used only for **traceability** (invoice_move_id on each line).
+        * For multi-bill payments the first bill that carries the same WHT is used;
+          for single-bill payments the bill is always linked.
+        * Lines are ordered to match wizard line order (no surprise reordering).
+
+        Returns list of ORM command tuples: [(0, 0, vals), ...]
+        """
+        if not wizard or not wizard.wht_line_ids:
+            return []
+
+        # Build {wht_id: [invoice, ...]} for source traceability
+        bill_wht_map = {}
+        for inv in sorted(invoices, key=lambda x: (x.invoice_date or '', x.name or '', x.id)):
+            for line in sorted(inv.invoice_line_ids, key=lambda x: x.sequence):
+                for wht in self._get_wht_taxes_from_invoice_line(line):
+                    bill_wht_map.setdefault(wht.id, [])
+                    if inv not in bill_wht_map[wht.id]:
+                        bill_wht_map[wht.id].append(inv)
+
+        lines_vals = []
+        for w_line in wizard.wht_line_ids:
+            wht = w_line.wht_id
+
+            # Best-effort: link to the first bill that carries this WHT tax
+            source_bills = bill_wht_map.get(wht.id, []) if wht else []
+            if not source_bills and len(invoices) == 1:
+                source_bills = list(invoices)
+            source_invoice = source_bills[0] if source_bills else False
+
+            lines_vals.append((0, 0, {
+                'income_type_id': wht.income_type_id.id if wht and wht.income_type_id else False,
+                'name':           w_line.name or (wht.name if wht else ''),
+                'base_amount':    w_line.base_amount,
+                'tax_amount':     w_line.amount,
+                'wht_pay_type':   wizard.wht_pay_type or 'normal',
+                'pay_date':       self.date,
+                'invoice_move_id': source_invoice.id if source_invoice else False,
+            }))
+
+        return lines_vals
+
+    def _get_wht_taxes_from_invoice_line(self, line):
+        """
+        Return list of account.wht records linked to an invoice line.
+
+        Supports two integration styles used by this module:
+        1. Direct wht_tax_ids field (preferred — direct Many2many on invoice line).
+        2. Lookup through tax_ids against account.wht.sale_tax_id (legacy style).
+        """
+        if not line:
+            return []
+
+        # Style 1 – direct wht_tax_ids field
+        if 'wht_tax_ids' in line._fields and line.wht_tax_ids:
+            return list(line.wht_tax_ids)
+
+        # Style 2 – lookup account.wht by matching sale_tax_id
+        if line.tax_ids:
+            all_wht = self.env['account.wht'].search(
+                [('tax_application', '=', 'payment')]
+            )
+            wht_by_tax = {w.sale_tax_id.id: w for w in all_wht if w.sale_tax_id}
+            return [wht_by_tax[t.id] for t in line.tax_ids if t.id in wht_by_tax]
+
+        return []
 
     def _wht_domain(self):
         # แสดง WHT ทุกตัวที่ใช้กับการชำระเงิน (ทั้งฝั่ง Customer และ Vendor)
@@ -106,10 +346,6 @@ class AccountPayment(models.Model):
         for payment in self:
             final_amount = 0.00
             invoices = False
-            if payment.reconciled_bill_ids:
-                invoices = payment.reconciled_bill_ids
-            if payment.reconciled_invoice_ids:
-                invoices = payment.reconciled_invoice_ids
             if invoices:
                 percentage = self._get_wht_payment_ratio(payment, invoices)
                 for invoice in invoices:
@@ -184,7 +420,8 @@ class AccountPayment(models.Model):
                                         final_amount += wht_amount_ded
 
                     else:
-                        if payment.move_id:
+                        # move_id may not be directly available in Odoo 19, skip this branch
+                        if hasattr(payment, 'move_id') and payment.move_id:
                             for wht in self.wht_ids:
                                 if wht.type_tax_use != "tax" and wht.amount:
                                     # Use amount_untaxed for pre-VAT base
@@ -213,160 +450,53 @@ class AccountPayment(models.Model):
         debit = 0.0
         credit = 0.0
         wht_names = set(self.env["account.wht"].search([]).mapped("name"))
-        if wht_amount_company and payment.payment_type == "outbound":
-            for line in res:
-                if (
-                    line["credit"] != 0.0
-                    and "Write-Off" not in line["name"]
-                    and line["name"]
-                    not in wht_names
-                ):
-                    line["credit"] = round(line["credit"] - wht_amount_company, 2)
-                    if payment_currency != company_currency and "amount_currency" in line:
-                        line["amount_currency"] = round(line["amount_currency"] + wht_amount_ded, 2)
 
-            debit = 0.0
+        if wht.type_tax_use == "tax":
+            debit = wht_amount_company
+        else:
             credit = wht_amount_company
-        elif wht_amount_company and payment.payment_type == "inbound":
-            for line in res:
-                if (
-                    line["debit"] != 0.0
-                    and "Write-Off" not in line["name"]
-                    and line["account_id"] not in [wht.account_id.id]
-                ):
-                    line["debit"] = round(line["debit"] - wht_amount_company, 2)
-                    if payment_currency != company_currency and "amount_currency" in line:
-                        line["amount_currency"] = round(line["amount_currency"] - wht_amount_ded, 2)
 
+        if payment.partner_type == "supplier":
+            credit = wht_amount_company
+            debit = 0.0
+        else:
             debit = wht_amount_company
             credit = 0.0
 
-        if debit or credit:
-            res.append(
-                {
-                    "name": wht.name,
-                    "currency_id": payment_currency.id,
-                    "debit": debit,
-                    "credit": credit,
-                    "amount_currency": wht_amount_ded if debit > 0 else -wht_amount_ded,
-                    "date_maturity": payment.date,
-                    "partner_id": payment.partner_id.commercial_partner_id.id,
-                    "account_id": wht.account_id.id,
-                }
-            )
+        if wht.name not in wht_names:
+            wht.name = _("%s - %s") % (wht.name, payment.partner_id.name)
 
-        if inv and inv.move_type in [
-            "out_invoice",
-            "in_refund",
-            "in_invoice",
-            "out_refund",
-        ]:
-            inv.wht_line_ids.create(
-                {
-                    "name": "Withholding Tax",
-                    "account_id": wht.account_id.id,
-                    "amount": wht_amount_ded,
-                    "move_id": inv.id,
-                }
-            )
+        account_id = wht.account_id.id
+        if not account_id:
+            if payment.partner_type == "supplier":
+                account_id = (
+                    payment.company_id.account_payable_id.id
+                    if payment.company_id.account_payable_id
+                    else False
+                )
+            else:
+                account_id = (
+                    payment.company_id.account_receivable_id.id
+                    if payment.company_id.account_receivable_id
+                    else False
+                )
 
-    def _generate_journal_entry(
-        self, write_off_line_vals=None, force_balance=None, line_ids=None
-    ):
-        need_move = self.filtered(lambda p: not p.move_id and p.outstanding_account_id)
-        assert len(self) == 1 or (
-            not write_off_line_vals and not force_balance and not line_ids
-        )
+        line_vals = {
+            "account_id": account_id,
+            "name": wht.name,
+            "debit": debit,
+            "credit": credit,
+            "currency_id": payment.currency_id.id,
+            "amount_currency": (
+                -wht_amount_ded if payment_currency != company_currency else 0
+            ),
+        }
 
-        move_vals = []
-        for pay in need_move:
-            move_vals.append(
-                {
-                    "move_type": "entry",
-                    "ref": pay.memo,
-                    "date": pay.date,
-                    "journal_id": pay.journal_id.id,
-                    "company_id": pay.company_id.id,
-                    "partner_id": pay.partner_id.id,
-                    "currency_id": pay.currency_id.id,
-                    "partner_bank_id": pay.partner_bank_id.id,
-                    "line_ids": line_ids
-                    or [
-                        Command.create(line_vals)
-                        for line_vals in pay._prepare_move_line_default_vals(
-                            write_off_line_vals=write_off_line_vals,
-                            force_balance=force_balance,
-                        )
-                    ],
-                    "origin_payment_id": pay.id,
-                }
-            )
-        if (
-            "wh_created" not in self.env.context.get("params", {})
-            or "wh_created" not in self.env.context
-        ):
-            for i, pay in enumerate(need_move):
-                if pay.memo:
-                    related_inv = self.env["account.move"].search([("name", "=", pay.memo)])
+        if payment.payment_method_line_id.payment_method_id.payment_type == "outbound":
+            line_vals["partner_id"] = payment.partner_id.id
 
-                    if related_inv:
-                        wh_amount = self.env["account.move.tax.lines"].search(
-                            [("move_id", "in", related_inv.ids)]
-                        )
-                        if wh_amount and move_vals and len(move_vals[i]["line_ids"]) > 1:
-                            # Safe dynamic lookup: find the largest credit line instead of
-                            # hardcoding index [1][2], which fails when tax/discount lines exist
-                            credit_line = None
-                            for line_tuple in move_vals[i]["line_ids"]:
-                                vals = line_tuple[2] if isinstance(line_tuple, (list, tuple)) and len(line_tuple) > 2 else line_tuple
-                                if vals.get("credit", 0.0) > 0.0:
-                                    if credit_line is None or vals["credit"] > credit_line["credit"]:
-                                        credit_line = vals
-                            if credit_line:
-                                total_wh_amount = sum(wh_amount.mapped("amount"))
-                                debit_amount = round(
-                                    credit_line["credit"] - total_wh_amount, 2
-                                )
-                                if debit_amount:
-                                    # Only adjust the FIRST debit line (payable) to maintain balance
-                                    adjusted = False
-                                    for inv in move_vals[i]["line_ids"]:
-                                        vals = inv[2] if isinstance(inv, (list, tuple)) and len(inv) > 2 else inv
-                                        if vals.get("debit", 0.0) > 0.0 and not adjusted:
-                                            vals["debit"] = debit_amount
-                                            vals["amount_currency"] = debit_amount
-                                            adjusted = True
-                                    first_line = move_vals[i]["line_ids"][0]
-                                    first_vals = first_line[2] if isinstance(first_line, (list, tuple)) and len(first_line) > 2 else first_line
-                                    
-                                    for wh_line in wh_amount:
-                                        move_vals[i]["line_ids"].append(
-                                            (
-                                                Command.CREATE,
-                                                0,
-                                                {
-                                                    "account_id": wh_line.account_id.id,
-                                                    "amount_currency": wh_line.amount,
-                                                    "credit": 0.0,
-                                                    "currency_id": self.env.company.currency_id.id,
-                                                    "date_maturity": first_vals.get("date_maturity"),
-                                                    "debit": wh_line.amount,
-                                                    "name": wh_line.name or wh_line.display_name,
-                                                    "partner_id": first_vals.get("partner_id"),
-                                                },
-                                            )
-                                        )
+        if not res:
+            return [line_vals]
 
-            # If 'params' exists in the context, update it
-            if "params" in self.env.context:
-                params = self.env.context["params"].copy()
-                params["wh_created"] = True
-                # Create a new environment with updated context
-                self = self.with_context(params=params)
-
-            # If 'wh_created' doesn't exist as an attribute, add it to the new context
-            if "wh_created" not in self.env.context:
-                self = self.with_context(wh_created=True)
-        moves = self.env["account.move"].create(move_vals)
-        for pay, move in zip(need_move, moves):
-            pay.write({"move_id": move.id, "state": "in_process"})
+        res.append(line_vals)
+        return res

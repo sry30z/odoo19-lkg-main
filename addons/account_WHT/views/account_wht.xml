@@ -57,6 +57,18 @@
                                 <field name="partner_address" />
                             </group>
                         </group>
+                        <!-- Historical Snapshots — read-only; frozen at certificate creation time -->
+                        <group string="ข้อมูลอ้างอิง ณ วันที่ออก (Snapshot)" name="snapshot_info"
+                              invisible="not partner_name_snapshot and not bill_reference_snapshot">
+                            <group>
+                                <field name="partner_name_snapshot" string="ชื่อผู้จ่าย (ขณะออก)" readonly="1" />
+                                <field name="bill_reference_snapshot" string="เลขที่ใบแจ้งหนี้ (ขณะออก)" readonly="1" />
+                            </group>
+                            <group>
+                                <field name="invoice_date_snapshot" string="วันที่ใบแจ้งหนี้ (ขณะออก)" readonly="1" />
+                                <field name="branch_snapshot" string="สาขา (ขณะออก)" readonly="1" />
+                            </group>
+                        </group>
                         <notebook>
                             <page string="WHT Detail Lines" name="wht_lines">
                                 <field name="line_ids">
@@ -68,6 +80,18 @@
                                         <field name="pay_date" />
                                         <field name="base_amount" sum="Total Base" />
                                         <field name="tax_amount" sum="Total Tax" />
+                                    </list>
+                                </field>
+                            </page>
+                            <page string="Source Bills" name="source_bills"
+                                  invisible="not move_ids">
+                                <field name="move_ids" string="Bills/Invoices" readonly="1">
+                                    <list>
+                                        <field name="name" string="Bill No." />
+                                        <field name="invoice_date" string="Bill Date" />
+                                        <field name="partner_id" string="Vendor" />
+                                        <field name="amount_total" string="Total" />
+                                        <field name="payment_state" string="Payment State" />
                                     </list>
                                 </field>
                             </page>
