@@ -193,7 +193,17 @@ class AccountWHTCertificate(models.Model):
         "account.payment",
         string="Payment",
         ondelete='cascade',
-        help="Source payment for this certificate (payment-centric architecture)"
+        readonly=True,
+        help="Primary source payment (legacy single-payment reference — preserved for backward compat)"
+    )
+    payment_ids = fields.Many2many(
+        'account.payment',
+        'wht_certificate_payment_rel',
+        'certificate_id',
+        'payment_id',
+        string='Payments',
+        copy=False,
+        help='All source payments for this certificate (grouped-payment architecture)'
     )
     move_id = fields.Many2one("account.move", string="Bill/Invoice (Legacy)")
     move_ids = fields.Many2many("account.move", string="Bills/Invoices")
@@ -245,10 +255,10 @@ class AccountWHTCertificate(models.Model):
         Generate business-safe idempotency key for WHT certificate.
         
         NEW FORMAT (Production-Safe):
-        "{payment_id}_{bills_hash}_{taxes_hash}_{wht_type}_{income_type}_{payment_date}"
+        "{payments_hash}_{bills_hash}_{taxes_hash}_{wht_type}_{income_type}_{payment_date}"
         
         Components:
-        - payment_id: Source payment identifier
+        - payments_hash: Hash of all payment IDs (supports grouped multi-payment batches)
         - bills_hash: Hash of related bill IDs (stable hash for grouped certificates)
         - taxes_hash: Hash of related tax IDs (supports multiple WHT rates)
         - wht_type: WHT document type (PND1, PND3, etc.)
@@ -268,8 +278,13 @@ class AccountWHTCertificate(models.Model):
         """
         self.ensure_one()
         
-        # Component 1: Payment ID
-        payment_id = self.payment_id.id if self.payment_id else 0
+        # Component 1: Payments hash (supports multiple payments in grouped flow)
+        # Use payment_ids if available, fallback to payment_id for backward compat
+        pmt_ids = self.payment_ids.mapped('id') if self.payment_ids else []
+        if not pmt_ids and self.payment_id:
+            pmt_ids = [self.payment_id.id]
+        pmt_ids_sorted = sorted(pmt_ids)
+        payments_hash = str(hash(tuple(pmt_ids_sorted))) if pmt_ids_sorted else '0'
         
         # Component 2: Bills Hash (stable hash for grouped certificates)
         # Use sorted IDs for consistent hash regardless of bill order
@@ -294,11 +309,11 @@ class AccountWHTCertificate(models.Model):
         payment_date_str = payment_date.strftime('%Y-%m-%d') if payment_date else 'unknown'
         
         # Generate composite key
-        custom_key = f"{payment_id}_{bills_hash}_{taxes_hash}_{wht_type}_{income_type}_{payment_date_str}"
+        custom_key = f"{payments_hash}_{bills_hash}_{taxes_hash}_{wht_type}_{income_type}_{payment_date_str}"
         
         return custom_key
     
-    @api.onchange('payment_id', 'move_ids', 'wht_type', 'income_type', 'pay_date')
+    @api.onchange('payment_id', 'payment_ids', 'move_ids', 'wht_type', 'income_type', 'pay_date')
     def _onchange_compute_custom_key(self):
         """
         Auto-compute custom key when key components change.
@@ -432,7 +447,7 @@ class AccountWHTCertificate(models.Model):
         for rec in self:
             if rec.state == 'done' and not self.env.context.get('allow_historical_edit'):
                 # List of fields that cannot be modified after confirmation
-                protected_fields = ['certificate_no', 'move_ids', 'payment_id', 'custom_key', 'wht_type', 'wht_pay_type', 'partner_taxid', 'partner_address', 'partner_name_snapshot', 'bill_reference_snapshot', 'branch_snapshot', 'invoice_date_snapshot']
+                protected_fields = ['certificate_no', 'move_ids', 'payment_id', 'payment_ids', 'custom_key', 'wht_type', 'wht_pay_type', 'partner_taxid', 'partner_address', 'partner_name_snapshot', 'bill_reference_snapshot', 'branch_snapshot', 'invoice_date_snapshot']
                 if any(field in vals for field in protected_fields):
                     _logger.warning(
                         "[WHT CERT] PROTECTED: Attempt to modify protected fields on confirmed certificate %s: %s",

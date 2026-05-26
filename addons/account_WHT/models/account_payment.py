@@ -54,7 +54,10 @@ class AccountPayment(models.Model):
         # duplicate certs when the same wizard is retried after a partial failure.
         _all_payment_ids = list(self.env.context.get('wht_all_payment_ids') or [self.id])
         existing = self.env['account.wht.certificate'].search([
+            '&',
+            '|',
             ('payment_id', 'in', _all_payment_ids),
+            ('payment_ids', 'in', _all_payment_ids),
             ('state', '!=', 'cancel'),
         ], limit=1)
         if existing:
@@ -178,6 +181,8 @@ class AccountPayment(models.Model):
 
             if invoices:
                 cert_vals['move_ids'] = [(6, 0, invoices.ids)]
+            # Link ALL payments in the batch (grouped-payment architecture)
+            cert_vals['payment_ids'] = [(6, 0, _all_payment_ids)]
             if source_line_ids:
                 cert_vals['source_move_line_ids'] = [(6, 0, source_line_ids)]
 
@@ -302,7 +307,10 @@ class AccountPayment(models.Model):
     def _compute_wht_certificate_count(self):
         for payment in self:
             payment.wht_certificate_count = self.env["account.wht.certificate"].search_count([
+                '&',
+                '|',
                 ("payment_id", "=", payment.id),
+                ("payment_ids", "in", [payment.id]),
                 ("state", "!=", "cancel"),
             ])
 
@@ -313,9 +321,16 @@ class AccountPayment(models.Model):
             "type": "ir.actions.act_window",
             "res_model": "account.wht.certificate",
             "view_mode": "list,form",
-            "domain": [("payment_id", "=", self.id), ("state", "!=", "cancel")],
+            "domain": [
+                '&',
+                '|',
+                ("payment_id", "=", self.id),
+                ("payment_ids", "in", [self.id]),
+                ("state", "!=", "cancel"),
+            ],
             "context": {
                 "default_payment_id": self.id,
+                "default_payment_ids": [(4, self.id)],
                 "default_partner_id": self.partner_id.id,
             },
         }

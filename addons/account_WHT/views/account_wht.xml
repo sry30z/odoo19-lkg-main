@@ -37,6 +37,7 @@
                                 <field name="income_type" />
                                 <field name="wht_reference" />
                                 <field name="payment_id" invisible="not payment_id" />
+                                <field name="payment_ids" widget="many2many_tags" invisible="not payment_ids" string="Payments" />
                                 <field name="move_ids" invisible="1" />
                                 <field name="company_id" groups="base.group_multi_company" />
                             </group>
@@ -95,6 +96,19 @@
                                     </list>
                                 </field>
                             </page>
+                            <page string="Linked Payments" name="linked_payments"
+                                  invisible="not payment_ids">
+                                <field name="payment_ids" string="Payments" readonly="1">
+                                    <list>
+                                        <field name="name" string="Payment Ref." />
+                                        <field name="date" string="Date" />
+                                        <field name="partner_id" string="Partner" />
+                                        <field name="amount" string="Amount" />
+                                        <field name="currency_id" string="Currency" />
+                                        <field name="state" string="Status" />
+                                    </list>
+                                </field>
+                            </page>
                         </notebook>
                     </sheet>
                 </form>
@@ -111,6 +125,7 @@
                     <field name="partner_id" />
                     <field name="wht_reference" string="Reference" />
                     <field name="move_ids" string="Bills/Invoices" />
+                    <field name="payment_ids" string="Payments" />
                     <field name="wht_type" string="WHT Type" />
                     <separator />
                     <filter name="filter_draft" string="Draft" domain="[('state','=','draft')]" />
@@ -152,7 +167,8 @@
                     <field name="wht_pay_type" optional="hide" />
                     <field name="wht_reference" optional="show" />
                     <field name="move_ids" widget="many2many_tags" optional="show" />
-                    <field name="payment_id" optional="show" />
+                    <field name="payment_ids" widget="many2many_tags" optional="show" string="Payments" />
+                    <field name="payment_id" optional="hide" />
                     <field name="partner_id" />
                     <field name="base_amount" />
                     <field name="tax_amount" />
