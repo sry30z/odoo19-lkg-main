@@ -2,6 +2,7 @@
 import logging
 from odoo import fields, models, api, _
 from odoo.exceptions import UserError
+from .wht_calculation_service import WHTCalculationService
 
 _logger = logging.getLogger(__name__)
 
@@ -228,11 +229,16 @@ class AccountMove(models.Model):
                 for cert in certs:
                     cert.action_cancel()
             
-            # If cancelling a payment move, cancel its WHT certificates
+            # ถ้ายกเลิก payment move → ยกเลิก WHT certs ที่เชื่อมกับ payment นี้
+            # ค้นหาด้วย OR domain ครอบคลุมทั้ง payment_id (Many2one legacy)
+            # และ payment_ids (Many2many ใหม่) เพื่อไม่ให้ cert หลุด
             if move.payment_id:
+                payment_pk = move.payment_id.id
                 certs = self.env['account.wht.certificate'].search([
-                    ('payment_id', '=', move.payment_id.id),
-                    ('state', '!=', 'cancel')
+                    ('state', '!=', 'cancel'),
+                    '|',
+                    ('payment_id', '=', payment_pk),
+                    ('payment_ids', 'in', [payment_pk]),
                 ])
                 for cert in certs:
                     cert.action_cancel()
@@ -306,11 +312,20 @@ class AccountMove(models.Model):
         return line_ids
 
     def generate_wht_move_lines(self, wht, line, line_ids):
+        """
+        สร้าง WHT journal lines สำหรับประเภท 'invoice' (tax-on-tax)
+
+        หมายเหตุ: แก้ bug เดิมที่ round อัตรา (rate) แทนที่จะ round ผลลัพธ์
+          เดิม: price_subtotal * round(amount/100, 2)  ← round อัตรา 7.5% → 0.08 (ผิด!)
+          ใหม่: round(price_subtotal * (amount/100), 2) ← round ผลลัพธ์ถูกต้อง
+        """
         if wht.tax_application == 'invoice':
             tax_amount = 0
             if line.tax_ids:
                 for tax_line in line.tax_ids:
-                    tax_amount = line.price_subtotal * round(tax_line.amount / 100, 2)
+                    # คำนวณ VAT/tax amount เพื่อใช้เป็นฐานสำหรับ WHT ประเภท tax-on-tax
+                    # ต้อง round ที่ผลลัพธ์ ไม่ใช่ที่อัตรา
+                    tax_amount = round(line.price_subtotal * (tax_line.amount / 100.0), 2)
                     return self.append_entry(wht, tax_amount, line, line_ids, tax_line=tax_line)
             else:
                 return self.append_entry(wht, tax_amount, line, line_ids, tax_line=None)
@@ -351,45 +366,66 @@ class AccountMove(models.Model):
 
     @api.onchange('invoice_line_ids', 'wht_pay_type')
     def on_change_tax_ids(self):
+        """
+        สร้าง taxes_line_ids สำหรับแสดงผลยอด WHT บนฟอร์มใบแจ้งหนี้
+
+        ใช้ WHTCalculationService.compute_wht_by_pay_type() เป็น Single Source of Truth
+        แทน inline formulas เดิมที่มีตรรกะซ้ำซ้อนและ error-prone
+        รองรับทั้งแบบ normal, gross_up_forever และ gross_up_once
+        รวมถึง tax-on-tax (WHT คำนวณบน VAT ไม่ใช่บน subtotal)
+        """
         self.taxes_line_ids = [(5, 0, 0)]
         data = []
         for line in self.invoice_line_ids:
             if line.wht_tax_ids:
                 for rec in line.wht_tax_ids:
                     amount = 0
-                    rate = rec.amount / 100.0
-                    
+
                     if rec.type_tax_use != 'tax':
-                        base = line.price_subtotal
-                        if self.wht_pay_type == 'gross_up_forever':
-                            if abs(1 - rate) < 1e-9:
-                                raise UserError(_("WHT rate cannot be 100%% for gross-up forever calculation (tax: %s).") % rec.name)
-                            base = base / (1 - rate)
-                        elif self.wht_pay_type == 'gross_up_once':
-                            base = base + (base * rate)
-                        amount = round(base * rate, 2)
+                        # ── กรณีทั่วไป: WHT คำนวณบน price_subtotal ──
+                        try:
+                            calc = WHTCalculationService.compute_wht_by_pay_type(
+                                line.price_subtotal,
+                                rec.amount,
+                                self.wht_pay_type or 'normal',
+                            )
+                        except (ValueError, ZeroDivisionError) as e:
+                            raise UserError(str(e))
+                        amount = calc['wht']
+
                     elif rec.type_tax_use == 'tax' and rec.sale_tax_id.id in line.tax_ids.ids:
+                        # ── กรณี tax-on-tax: WHT คำนวณบนยอด VAT ──
+                        # คำนวณ VAT amount ก่อนเพื่อใช้เป็น base
                         if rec.sale_tax_id.price_include:
-                            tax_rate = 1 + rec.sale_tax_id.amount / 100.0
-                            amount_after_tax = round(line.price_subtotal / tax_rate, 2) if tax_rate else line.price_subtotal
-                            tax_amount = line.price_subtotal - amount_after_tax
+                            tax_rate_factor = 1.0 + rec.sale_tax_id.amount / 100.0
+                            amount_after_tax = (
+                                round(line.price_subtotal / tax_rate_factor, 2)
+                                if tax_rate_factor else line.price_subtotal
+                            )
+                            base_for_wht = line.price_subtotal - amount_after_tax
                         else:
-                            tax_amount = round(line.price_subtotal * (rec.sale_tax_id.amount / 100.0), 2)
-                        
-                        base_tax = tax_amount
-                        if self.wht_pay_type == 'gross_up_forever':
-                            if abs(1 - rate) < 1e-9:
-                                raise UserError(_("WHT rate cannot be 100%% for gross-up forever calculation (tax: %s).") % rec.name)
-                            base_tax = base_tax / (1 - rate)
-                        elif self.wht_pay_type == 'gross_up_once':
-                            base_tax = base_tax + (base_tax * rate)
-                        amount = round(base_tax * rate, 2)
-                    
+                            base_for_wht = round(
+                                line.price_subtotal * (rec.sale_tax_id.amount / 100.0), 2
+                            )
+                        try:
+                            calc = WHTCalculationService.compute_wht_by_pay_type(
+                                base_for_wht,
+                                rec.amount,
+                                self.wht_pay_type or 'normal',
+                            )
+                        except (ValueError, ZeroDivisionError) as e:
+                            raise UserError(str(e))
+                        amount = calc['wht']
+
                     if amount:
                         data.append((0, 0, {
                             'name': rec.name,
                             'amount': amount,
-                            'account_id': rec.account_id.id if self.move_type in ['in_invoice', 'out_refund'] else rec.refund_account_id.id,
+                            'account_id': (
+                                rec.account_id.id
+                                if self.move_type in ['in_invoice', 'out_refund']
+                                else rec.refund_account_id.id
+                            ),
                             'wht_tax_id': rec.id,
                             'move_id': self._origin.id or self.id,
                         }))

@@ -342,43 +342,60 @@ class AccountWHTCertificate(models.Model):
             else:
                 rec.company_address = ''
     
-    @api.constrains('currency_id', 'move_ids', 'payment_id')
+    @api.constrains('currency_id', 'move_ids', 'payment_id', 'payment_ids')
     def _check_currency_consistency(self):
-        """Ensure certificate currency matches related moves and payments"""
+        """
+        ตรวจสอบความสอดคล้องของสกุลเงินระหว่าง WHT Certificate กับ moves/payments
+
+        ครอบคลุม 3 กรณี:
+          1) move_ids — ทุก invoice/bill ต้องมีสกุลเงินเดียวกัน
+          2) payment_id (Many2one legacy) — ต้องตรงกับ certificate
+          3) payment_ids (Many2many ใหม่) — ทุก payment ต้องตรงกับ certificate
+        """
         for rec in self:
+            cert_ref = rec.certificate_no if rec.certificate_no else f"ID: {rec.id}"
             _logger.debug(
-                "[WHT CERT] Checking currency consistency for certificate %s",
-                rec.certificate_no if rec.certificate_no else f"ID: {rec.id}"
+                "[WHT CERT] ตรวจสอบ currency consistency สำหรับ cert %s", cert_ref
             )
-            
+
+            # ── 1) ตรวจ move_ids ──
             if rec.currency_id and rec.move_ids:
-                # Check that all related moves have the same currency
                 move_currencies = rec.move_ids.mapped('currency_id')
                 if len(move_currencies) > 1:
                     _logger.error(
-                        "[WHT CERT] Currency inconsistency: Certificate %s has multiple move currencies",
-                        rec.certificate_no
+                        "[WHT CERT] หลายสกุลเงินใน move_ids: cert %s", cert_ref
                     )
-                    raise UserError(_("All related invoices must have the same currency."))
+                    raise UserError(_("ใบแจ้งหนี้ที่เชื่อมต้องมีสกุลเงินเดียวกันทั้งหมด"))
                 if move_currencies and move_currencies[0] != rec.currency_id:
                     _logger.error(
-                        "[WHT CERT] Currency mismatch: Certificate %s (currency=%s) vs Move (currency=%s)",
-                        rec.certificate_no, rec.currency_id.name, move_currencies[0].name
+                        "[WHT CERT] สกุลเงินไม่ตรง: cert %s (%s) vs move (%s)",
+                        cert_ref, rec.currency_id.name, move_currencies[0].name,
                     )
-                    raise UserError(_("Certificate currency must match invoice currency."))
-            
+                    raise UserError(_("สกุลเงินของ WHT Certificate ต้องตรงกับสกุลเงินของใบแจ้งหนี้"))
+
+            # ── 2) ตรวจ payment_id (Many2one legacy) ──
             if rec.currency_id and rec.payment_id:
-                # Check that payment currency matches certificate currency
                 if rec.payment_id.currency_id != rec.currency_id:
                     _logger.error(
-                        "[WHT CERT] Currency mismatch: Certificate %s (currency=%s) vs Payment (currency=%s)",
-                        rec.certificate_no, rec.currency_id.name, rec.payment_id.currency_id.name
+                        "[WHT CERT] สกุลเงินไม่ตรง: cert %s (%s) vs payment_id (%s)",
+                        cert_ref, rec.currency_id.name, rec.payment_id.currency_id.name,
                     )
-                    raise UserError(_("Certificate currency must match payment currency."))
-            
+                    raise UserError(_("สกุลเงินของ WHT Certificate ต้องตรงกับสกุลเงินของการชำระเงิน"))
+
+            # ── 3) ตรวจ payment_ids (Many2many ใหม่) ──
+            if rec.currency_id and rec.payment_ids:
+                for pmt in rec.payment_ids:
+                    if pmt.currency_id != rec.currency_id:
+                        _logger.error(
+                            "[WHT CERT] สกุลเงินไม่ตรง: cert %s (%s) vs payment_ids[%d] (%s)",
+                            cert_ref, rec.currency_id.name, pmt.id, pmt.currency_id.name,
+                        )
+                        raise UserError(_(
+                            "สกุลเงินของ WHT Certificate (%s) ต้องตรงกับสกุลเงินของการชำระเงิน %s (%s)"
+                        ) % (rec.currency_id.name, pmt.name, pmt.currency_id.name))
+
             _logger.debug(
-                "[WHT CERT] Currency consistency check passed for certificate %s",
-                rec.certificate_no if rec.certificate_no else f"ID: {rec.id}"
+                "[WHT CERT] ผ่านการตรวจ currency consistency สำหรับ cert %s", cert_ref
             )
 
     @api.depends('line_ids.base_amount', 'line_ids.tax_amount')
@@ -410,9 +427,25 @@ class AccountWHTCertificate(models.Model):
         return res
 
     def action_confirm(self):
+        """
+        ยืนยัน WHT Certificate: เปลี่ยนสถานะจาก draft → confirmed
+
+        Safety guards:
+          - ห้าม confirm cert ที่ state != draft
+          - ห้าม confirm cert ที่ไม่มี line_ids (ป้องกัน cert ว่าง)
+          - ห้าม confirm cert ที่ได้รับเลขที่แล้ว (ป้องกัน double-confirm)
+        """
         for rec in self:
             if rec.state != 'draft':
                 raise UserError(_("Cannot confirm a certificate that is not in draft state"))
+
+            # ── Safety guard: ห้าม confirm WHT cert ที่ไม่มีรายการ ──
+            # ป้องกัน cert ว่าง (no line_ids) ถูก confirm โดยไม่ตั้งใจ
+            if not rec.line_ids:
+                raise UserError(_(
+                    "ไม่สามารถยืนยัน WHT Certificate ที่ไม่มีรายการภาษี กรุณาเพิ่มรายการภาษีหัก ณ ที่จ่ายหรือกดคำนวณใหม่ก่อนยืนยัน"
+                ))
+
             if rec.certificate_no not in ('New', 'Draft') and not (rec.certificate_no and str(rec.certificate_no).startswith('New -')):
                 raise UserError(_("Certificate number already assigned"))
 

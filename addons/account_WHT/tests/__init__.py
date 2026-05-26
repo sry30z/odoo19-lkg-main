@@ -6,6 +6,9 @@ Tests the deterministic behavior of the centralized WHT calculation service,
 ensuring that the same inputs always produce the same outputs.
 """
 
+# นำเข้า regression tests (10 scenarios สำหรับ critical bug fixes)
+from . import test_wht_regression  # noqa: F401
+
 from odoo.tests.common import TransactionCase
 from odoo.exceptions import UserError
 import logging
@@ -167,7 +170,7 @@ class TestWHTServiceIntegration(TransactionCase):
         # Verify
         self.assertEqual(len(result['by_line']), 1)
         self.assertEqual(result['total']['base'], 1000.0)
-        self.assertEqual(result['total['wht'], 30.0)
+        self.assertEqual(result['total']['wht'], 30.0)
     
     def test_invoice_wht_calculation_gross_up(self):
         """Test invoice WHT calculation with gross-up"""
@@ -302,7 +305,7 @@ class TestWHTIdempotency(TransactionCase):
         invoice.invoice_line_ids[0].wht_tax_ids = [(4, self.wht_tax.id)]
         
         # Create payment
-        payment = self.env['payment'].create({
+        payment = self.env['account.payment'].create({
             'payment_type': 'outbound',
             'partner_id': self.partner.id,
             'amount': 970.0,

@@ -8,8 +8,8 @@
             <field name="arch" type="xml">
                 <form string="WHT Certificate">
                     <header>
-                        <button name="action_recompute_from_bills" string="🔄 ดึงรายการใหม่จากบิล" type="object" class="btn-secondary" invisible="1" />
-                        <button name="action_confirm" string="✅ ยืนยันและออกเลขที่" type="object" class="btn-primary" invisible="1" />
+                        <button name="action_recompute_from_bills" string="🔄 ดึงรายการใหม่จากบิล" type="object" class="btn-secondary" invisible="state != 'draft'" />
+                        <button name="action_confirm" string="✅ ยืนยันและออกเลขที่" type="object" class="btn-primary" invisible="state != 'draft'" />
                         <button name="action_preview_50tawi" string="Preview" type="object" class="btn-info" />
                         <button name="action_print_50tawi" string="Print Withholding Tax" type="object" class="btn-primary" invisible="state == 'draft'" />
                         <button name="action_send_email" string="Send Withholding Tax" type="object" class="btn-secondary" invisible="state == 'draft'" />
