@@ -119,11 +119,24 @@ class AccountPayment(models.Model):
                 len(lines_vals),
             )
             certificate = self.env['account.wht.certificate'].create(cert_vals)
-            certificate.action_confirm()
             _logger.info(
-                "[WHT CERT] Created and confirmed %s for payment %s",
-                certificate.certificate_no, self.name,
+                "[WHT CERT] Certificate created in draft: %s (id=%d)",
+                certificate.certificate_no, certificate.id,
             )
+            # Auto-confirm: separate try/except so cert creation survives if confirm fails
+            try:
+                self.env.flush_all()  # ensure cert row is in DB before FOR UPDATE
+                certificate.action_confirm()
+                _logger.info(
+                    "[WHT CERT] Auto-confirmed %s for payment %s",
+                    certificate.certificate_no, self.name,
+                )
+            except Exception as confirm_err:
+                _logger.warning(
+                    "[WHT CERT] Auto-confirm failed for %s — remaining in draft: %s",
+                    certificate.certificate_no, str(confirm_err),
+                )
+                # Certificate stays in draft for manual confirmation; payment unaffected
 
         except Exception as e:
             _logger.exception(

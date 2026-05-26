@@ -1,5 +1,6 @@
 from odoo import fields, models, api, tools, _
 from odoo.exceptions import UserError
+from .wht_calculation_service import WHTCalculationService
 import base64
 import os
 import logging
@@ -483,17 +484,17 @@ class AccountWHTCertificate(models.Model):
             for move in rec.move_ids:
                 for inv_line in move.invoice_line_ids:
                     for wht in inv_line.wht_tax_ids:
-                        rate = wht.amount / 100.0
-                        l_base = inv_line.price_subtotal
-                        
-                        if move.wht_pay_type == 'gross_up_forever':
-                            if abs(1 - rate) < 1e-9:
-                                continue
-                            l_base = l_base / (1 - rate)
-                        elif move.wht_pay_type == 'gross_up_once':
-                            l_base = l_base + (l_base * rate)
-                            
-                        l_tax = round(l_base * rate, 2)
+                        try:
+                            calc = WHTCalculationService.compute_wht_by_pay_type(
+                                inv_line.price_subtotal,
+                                wht.amount,
+                                move.wht_pay_type or 'normal',
+                            )
+                        except ValueError:
+                            # e.g. rate=100% for gross_up_forever
+                            continue
+                        l_base = calc['base']
+                        l_tax  = calc['wht']
                         new_lines.append((0, 0, {
                             'income_type_id': wht.income_type_id.id if wht.income_type_id else False,
                             'income_type_code': wht.income_type_id.code if wht.income_type_id else '',

@@ -1,5 +1,6 @@
 from odoo import fields, models, api, _
 from odoo.exceptions import UserError
+from .wht_calculation_service import WHTCalculationService
 import logging
 
 _logger = logging.getLogger(__name__)
@@ -141,17 +142,16 @@ class AccountPaymentRegister(models.TransientModel):
             for line in inv.invoice_line_ids:
                 if 'wht_tax_ids' in line._fields and line.wht_tax_ids:
                     for wht in line.wht_tax_ids:
-                        rate = wht.amount / 100.0
-                        base_amount = line.price_subtotal * ratio
-                        
-                        if self.wht_pay_type == 'gross_up_forever':
-                            if abs(1 - rate) < 1e-9:
-                                raise UserError(_("WHT rate cannot be 100%% for gross-up forever calculation (tax: %s).") % wht.name)
-                            base_amount = base_amount / (1 - rate)
-                        elif self.wht_pay_type == 'gross_up_once':
-                            base_amount = base_amount + (base_amount * rate)
-                            
-                        wht_amount = round(base_amount * rate, 2)
+                        try:
+                            calc = WHTCalculationService.compute_wht_by_pay_type(
+                                line.price_subtotal * ratio,
+                                wht.amount,
+                                self.wht_pay_type or 'normal',
+                            )
+                        except ValueError as ve:
+                            raise UserError(str(ve))
+                        base_amount = calc['base']
+                        wht_amount  = calc['wht']
                         account = wht.account_id if inv.move_type == 'in_invoice' else wht.refund_account_id
                         wht_lines.append((0, 0, {
                             'account_id': account.id if account else False,
@@ -166,17 +166,16 @@ class AccountPaymentRegister(models.TransientModel):
                     for tax in line.tax_ids:
                         wht = wht_by_tax_id.get(tax.id)
                         if wht:
-                            rate = wht.amount / 100.0
-                            base_amount = line.price_subtotal * ratio
-                            
-                            if self.wht_pay_type == 'gross_up_forever':
-                                if abs(1 - rate) < 1e-9:
-                                    raise UserError(_("WHT rate cannot be 100%% for gross-up forever calculation (tax: %s).") % wht.name)
-                                base_amount = base_amount / (1 - rate)
-                            elif self.wht_pay_type == 'gross_up_once':
-                                base_amount = base_amount + (base_amount * rate)
-                                
-                            wht_amount = round(base_amount * rate, 2)
+                            try:
+                                calc = WHTCalculationService.compute_wht_by_pay_type(
+                                    line.price_subtotal * ratio,
+                                    wht.amount,
+                                    self.wht_pay_type or 'normal',
+                                )
+                            except ValueError as ve:
+                                raise UserError(str(ve))
+                            base_amount = calc['base']
+                            wht_amount  = calc['wht']
                             account = wht.account_id if inv.move_type == 'in_invoice' else wht.refund_account_id
                             wht_lines.append((0, 0, {
                                 'account_id': account.id if account else False,
@@ -201,10 +200,8 @@ class AccountPaymentRegister(models.TransientModel):
             if self.wht_pay_type == 'gross_up_forever':
                 self.amount = self.sub_amount
             elif self.wht_pay_type == 'gross_up_once':
-                # Base is original + WHT_exp. Net = Base - WHT. Net = original_sub_amount + (WHT_exp - WHT)
-                # But typically vendors want their full net amount.
-                base_total = sum(l[2]['base_amount'] for l in wht_lines)
-                self.amount = base_total - wht_total
+                # Vendor receives full original amount; company pays WHT additionally
+                self.amount = self.sub_amount
             else:
                 self.amount = self.sub_amount - wht_total
 
@@ -217,9 +214,7 @@ class AccountPaymentRegister(models.TransientModel):
             full_net = self.sub_amount
             if self.wht_pay_type == 'normal':
                 full_net = self.sub_amount - full_wht
-            elif self.wht_pay_type == 'gross_up_once':
-                base_total = sum(l[2]['base_amount'] for l in full_wht_lines)
-                full_net = base_total - full_wht
+            # gross_up_forever and gross_up_once: vendor receives full sub_amount
             
             if full_net and self.amount != full_net:
                 ratio = self.amount / full_net

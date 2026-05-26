@@ -47,6 +47,62 @@ class WHTCalculationService:
         self.env = env
 
     # ─────────────────────────────────────────────────────────────────────────
+    # 0. Formula Engine — Single Source of Truth for ALL WHT calculations
+    # ─────────────────────────────────────────────────────────────────────────
+    @staticmethod
+    def compute_wht_by_pay_type(amount, tax_rate, wht_pay_type):
+        """
+        Formula Engine — จุดคำนวณ WHT แบบรวมศูนย์เดียว (Single Source of Truth)
+
+        Args:
+            amount       (float): ยอดเงินต้นทาง (invoice line x payment ratio)
+            tax_rate     (float): อัตราภาษีเป็น % เช่น 3.0 หมายถึง 3%
+            wht_pay_type (str):   'normal' | 'gross_up_forever' | 'gross_up_once'
+
+        Returns:
+            dict with keys:
+              base  — ฐานภาษีที่ใช้คำนวณ WHT
+              wht   — จำนวนภาษีหัก ณ ที่จ่าย (rounded 2 dp)
+              net   — ยอดสุทธิ์ที่ผู้รับบริการได้รับจริง
+              total — ยอดรวมที่บริษัทจ่ายออก
+
+        CASE 1 — หัก ณ จ่าย (normal):
+            base=amount, wht=base*rate, net=amount-wht, total=amount
+            Example: amount=17500, rate=3% => base=17500 wht=525 net=16975
+
+        CASE 2 — ออกให้ตลอด (gross_up_forever):
+            gross_base=amount/(1-rate), wht=gross_base*rate, net=amount, total=gross_base
+            Example: amount=17500, rate=3% => base=18041.24 wht=541.24 net=17500
+
+        CASE 3 — ออกให้ครั้งเดียว (gross_up_once):
+            base=amount (ไม่หาร 1-rate), wht=base*rate, net=amount, total=amount+wht
+            Example: amount=17500, rate=3% => base=17500 wht=525 net=17500 total=18025
+        """
+        rate = tax_rate / 100.0
+
+        if wht_pay_type == 'gross_up_forever':
+            if abs(1.0 - rate) < 1e-9:
+                raise ValueError(
+                    "WHT rate cannot be 100%% for gross_up_forever "
+                    "(tax_rate=%.4f%%)" % tax_rate
+                )
+            gross_base = amount / (1.0 - rate)
+            wht        = round(gross_base * rate, 2)
+            gross_base = round(gross_base, 2)
+            return {'base': gross_base, 'wht': wht, 'net': amount, 'total': gross_base}
+
+        elif wht_pay_type == 'gross_up_once':
+            # ไม่หาร (1-rate) — ไม่ใช้ recursive gross-up
+            wht   = round(amount * rate, 2)
+            total = round(amount + wht, 2)
+            return {'base': amount, 'wht': wht, 'net': amount, 'total': total}
+
+        else:  # 'normal'
+            wht = round(amount * rate, 2)
+            return {'base': amount, 'wht': wht, 'net': round(amount - wht, 2), 'total': amount}
+
+
+    # ─────────────────────────────────────────────────────────────────────────
     # 1. ค้นหาใบแจ้งหนี้ต้นทาง
     # ─────────────────────────────────────────────────────────────────────────
     def discover_bills(self, wizard, payment):
