@@ -12,6 +12,19 @@
     padding-top: 0px !important;
 }
 
+@media print {
+    @page {
+        margin: 0;
+    }
+    .page {
+        padding-top: 30mm !important;
+        padding-bottom: 30mm !important;
+    }
+    .page.th-header-padded {
+        padding-top: 30mm !important;
+    }
+}
+
 /* ===== HEADER LAYOUT ===== */
 .th-header-table {
     width: 100% !important;
