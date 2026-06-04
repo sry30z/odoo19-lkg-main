@@ -24,7 +24,7 @@ class AccountPaymentRegister(models.TransientModel):
     ], string='WHT Type')
 
     wht_pay_type = fields.Selection([
-        ('normal', 'หัก ณ จ่าย'),
+        ('normal', 'หัก ณ ที่จ่าย'),
         ('gross_up_forever', 'ออกให้ตลอด'),
         ('gross_up_once', 'ออกให้ครั้งเดียว'),
     ], string='WHT Pay Type', default='normal')
@@ -226,6 +226,57 @@ class AccountPaymentRegister(models.TransientModel):
             self.wht_line_ids = [(5, 0, 0)] + scaled_lines
 
 
+    def _create_payment_vals_from_wizard(self, batch_result):
+        """
+        Override Odoo native payment vals builder to inject WHT write-off lines.
+        This allows WHT to hit the GL and participate in invoice reconciliation natively.
+        """
+        vals = super()._create_payment_vals_from_wizard(batch_result)
+        
+        if not getattr(self, 'is_wht', False) or not self.wht_line_ids:
+            return vals
+
+        write_off_lines = []
+        for w_line in self.wht_line_ids:
+            wht = w_line.wht_id
+            
+            # TASK 2: Enforce WHT Liability Account Validation
+            account = w_line.account_id or wht.account_id
+            if not account:
+                _logger.warning("[WHT] Skipping WHT line: No account configured for WHT %s", wht.name)
+                continue
+                
+            # Verify account type. Must not be income.
+            if account.account_type in ['income', 'income_other', 'asset_receivable']:
+                _logger.warning(
+                    "[WHT ERROR] Invalid WHT Account %s (Type: %s). Must be a Liability account. Skipping.",
+                    account.display_name, account.account_type
+                )
+                continue
+                
+            if account.company_ids and self.company_id not in account.company_ids:
+                _logger.warning(
+                    "[WHT ERROR] Account %s company mismatch. Skipping.",
+                    account.display_name
+                )
+                continue
+
+            # write_off_line_vals amount is negative for a credit (vendor payment) 
+            # Odoo's core subtracts this from the total amount
+            amount_diff = -w_line.amount if self.payment_type == 'outbound' else w_line.amount
+            
+            write_off_lines.append({
+                'name': w_line.name or wht.name or 'WHT',
+                'amount': amount_diff,
+                'account_id': account.id,
+            })
+
+        if write_off_lines:
+            # write_off_line_vals is handled natively by _create_payments() in Odoo core
+            vals['write_off_line_vals'] = write_off_lines
+            _logger.info("[WHT] Injected %d write-off lines for payment.", len(write_off_lines))
+
+        return vals
 
     def _create_payments(self):
         """

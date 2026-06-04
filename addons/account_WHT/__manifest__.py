@@ -14,18 +14,19 @@
     "maintainer": "One Stop Odoo",
     'license': 'OPL-1',
     'category': 'Accounting',
-    'version': '1.5.1',
+    'version': '18.0.1.5.2',
     'depends': ['account', 'sale', 'purchase', 'web', 'bm_tax_invoice_receipt'],
     'models': ['models', 'services'],
     'data': [
         'data/wht_data.xml',
         'data/ir_sequence_data.xml',
         'data/wht_income_type_data.xml',
+        'data/account_wht_default.xml',
         'security/account_wht_security.xml',
         'security/ir.model.access.csv',
         'views/account_wht.xml',
         'views/account_move.xml',
-'views/res_company_views.xml',
+        'views/res_company_views.xml',
         'views/res_company_report_theme_views.xml',
         'views/account_payment.xml',
         'views/account_payment_register.xml',
@@ -45,10 +46,6 @@
         'reports/report_payment_receipt_action.xml',
         'reports/report_payment_receipt_templates.xml',
     ],
-    
-    # Migration script for uniqueness constraints upgrade
-    'post_init_hook': 'migrations.15.0.0.1_upgrade_uniqueness_constraints.migrate',
-    
     'assets': {
         'web.report_assets_common': [
             'account_WHT/static/src/css/report_common.css',

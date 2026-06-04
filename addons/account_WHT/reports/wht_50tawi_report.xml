@@ -239,9 +239,9 @@
                 .total-tax      { top: 229mm; left: 173mm; font-size: 13px; text-align: right; width: 22mm; }
 
                 /* ส่วนท้าย (ลายเซ็น) - Adjusted positions to stay inside safe area */
-                .sig-day   { top: 265mm; left: 119mm; font-size: 14px; }
-                .sig-month { top: 265mm; left: 132mm; font-size: 14px; }
-                .sig-year  { top: 265mm; left: 154mm; font-size: 14px; }
+                .sig-day   { top: 266.5mm; left: 119mm; font-size: 14px; }
+                .sig-month { top: 266.5mm; left: 132mm; font-size: 14px; }
+                .sig-year  { top: 266.5mm; left: 154mm; font-size: 14px; }
                 .company-signature { top: 252mm; left: 125mm; width: 40mm; z-index: 100; }
 
                 /* ซ่อนเงาและสีพื้นหลังตอนพิมพ์จริง */
@@ -349,7 +349,7 @@
                             </t>
                         </div>
                         <div class="pos-abs payee-address">
-                            <span t-field="doc.partner_address" />
+                            <span t-esc="doc.get_partner_address_inline()" />
                         </div>
                         <!-- ── รายการเงินได้ (Dynamic Row 1-6 และหมวดย่อย 4ข) ── -->
                         <t t-set="valid_codes" t-value="['1','2','3','4','4_11','4_12','4_13','4_14','4_21','4_22','4_23','4_24','4_25','5','6']"/>
@@ -383,7 +383,9 @@
                         </div>
                         <div class="pos-abs total-tax-text">
                             <t t-set="amt_txt" t-value="doc.currency_id.with_context(lang='th_TH').amount_to_text(doc.tax_amount)"/>
-                            (<span t-esc="amt_txt.replace(' ', '') if 'สตางค์' in amt_txt or amt_txt.replace(' ', '').endswith('ถ้วน') else amt_txt.replace(' ', '') + 'ถ้วน'"/>)
+                            <t t-set="amt_txt" t-value="(amt_txt or '').replace('Baht', 'บาท').replace('baht', 'บาท').replace('Satang', 'สตางค์').replace('satang', 'สตางค์')"/>
+                            (                            <span t-esc="amt_txt.replace(' ', '') if 'สตางค์' in amt_txt or amt_txt.replace(' ', '').endswith('ถ้วน') else amt_txt.replace(' ', '') + 'ถ้วน'"/>
+)
                         </div>
 
                         <!-- ── วิธีหัก ── -->

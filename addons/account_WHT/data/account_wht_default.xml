@@ -1,0 +1,296 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!--
+        account_wht_default.xml
+        ========================
+        ข้อมูลตั้งต้นของ Withholding Tax (account.wht) สำหรับระบบ Thai WHT
+        - noupdate="1": ข้อมูลจะถูกสร้างเมื่อติดตั้ง Module ครั้งแรกเท่านั้น
+          หากผู้ใช้แก้ไขภายหลัง (เช่น เปลี่ยน % หรือผังบัญชี) จะไม่ถูก Reset เมื่ออัปเกรด
+        - บัญชีใช้ search ด้วย code เพื่อป้องกัน ID ต่างกันในแต่ละ database
+        - income_type_id ใช้ ref ที่ถูกต้องจาก wht_income_type_data.xml
+    -->
+    <data noupdate="1">
+
+        <!-- ============================================================ -->
+        <!-- มาตรา 40 (1) — เงินเดือน                                      -->
+        <!-- ============================================================ -->
+        <record id="account_wht_salary_0" model="account.wht">
+            <field name="name">1. เงินเดือน(0%)</field>
+            <field name="amount">0.0</field>
+            <field name="active">True</field>
+            <field name="type_tax_use">purchase</field>
+            <field name="tax_application">payment</field>
+            <field name="income_type_id" ref="account_WHT.wht_income_type_auto_113"/>
+            <field name="account_id" search="[('code','=','152000')]" model="account.account"/>
+            <field name="refund_account_id" search="[('code','=','152000')]" model="account.account"/>
+            <field name="income_account_id" search="[('code','=','410000')]" model="account.account"/>
+            <field name="expense_account_id" search="[('code','=','540000')]" model="account.account"/>
+            <field name="tax_group_id" ref="account_WHT.tax_group_wht"/>
+        </record>
+
+        <!-- ============================================================ -->
+        <!-- มาตรา 40 (2) — ค่านายหน้า                                    -->
+        <!-- ============================================================ -->
+        <record id="account_wht_commission_3" model="account.wht">
+            <field name="name">2. ค่านายหน้า(3%)</field>
+            <field name="amount">3.0</field>
+            <field name="active">True</field>
+            <field name="type_tax_use">purchase</field>
+            <field name="tax_application">payment</field>
+            <field name="income_type_id" ref="account_WHT.wht_income_type_auto_106"/>
+            <field name="account_id" search="[('code','=','152000')]" model="account.account"/>
+            <field name="refund_account_id" search="[('code','=','152000')]" model="account.account"/>
+            <field name="income_account_id" search="[('code','=','410000')]" model="account.account"/>
+            <field name="expense_account_id" search="[('code','=','540000')]" model="account.account"/>
+            <field name="tax_group_id" ref="account_WHT.tax_group_wht"/>
+        </record>
+
+        <!-- ============================================================ -->
+        <!-- มาตรา 40 (3) — ค่าลิขสิทธิ์                                  -->
+        <!-- ============================================================ -->
+        <record id="account_wht_royalty_3" model="account.wht">
+            <field name="name">3. ค่าแหน่งลิขสิทธิ์(3%)</field>
+            <field name="amount">3.0</field>
+            <field name="active">True</field>
+            <field name="type_tax_use">purchase</field>
+            <field name="tax_application">payment</field>
+            <field name="income_type_id" ref="account_WHT.wht_income_type_auto_101"/>
+            <field name="account_id" search="[('code','=','152000')]" model="account.account"/>
+            <field name="refund_account_id" search="[('code','=','152000')]" model="account.account"/>
+            <field name="income_account_id" search="[('code','=','410000')]" model="account.account"/>
+            <field name="expense_account_id" search="[('code','=','540000')]" model="account.account"/>
+            <field name="tax_group_id" ref="account_WHT.tax_group_wht"/>
+        </record>
+
+        <!-- ============================================================ -->
+        <!-- มาตรา 40 (4) (ก) — ดอกเบี้ย เงินปันผล                        -->
+        <!-- ============================================================ -->
+        <record id="account_wht_interest_0" model="account.wht">
+            <field name="name">4. ดอกเบี้ย ฯลฯ ตามมาตรา 40 (4) (ก)</field>
+            <field name="amount">0.0</field>
+            <field name="active">True</field>
+            <field name="type_tax_use">purchase</field>
+            <field name="tax_application">payment</field>
+            <field name="income_type_id" ref="account_WHT.wht_income_type_auto_104"/>
+            <field name="account_id" search="[('code','=','152000')]" model="account.account"/>
+            <field name="refund_account_id" search="[('code','=','152000')]" model="account.account"/>
+            <field name="income_account_id" search="[('code','=','410000')]" model="account.account"/>
+            <field name="expense_account_id" search="[('code','=','540000')]" model="account.account"/>
+            <field name="tax_group_id" ref="account_WHT.tax_group_wht"/>
+        </record>
+
+        <!-- ============================================================ -->
+        <!-- มาตรา 40 (4) (ข) — เงินปันผล อัตราต่างๆ                      -->
+        <!-- ============================================================ -->
+        <record id="account_wht_dividend_30" model="account.wht">
+            <field name="name">4.1.1 อัตราร้อยละ 30 ของกำไรสุทธิ</field>
+            <field name="amount">0.0</field>
+            <field name="active">True</field>
+            <field name="type_tax_use">purchase</field>
+            <field name="tax_application">payment</field>
+            <field name="income_type_id" ref="account_WHT.wht_income_type_auto_103"/>
+            <field name="account_id" search="[('code','=','152000')]" model="account.account"/>
+            <field name="refund_account_id" search="[('code','=','152000')]" model="account.account"/>
+            <field name="income_account_id" search="[('code','=','410000')]" model="account.account"/>
+            <field name="expense_account_id" search="[('code','=','540000')]" model="account.account"/>
+            <field name="tax_group_id" ref="account_WHT.tax_group_wht"/>
+        </record>
+
+        <record id="account_wht_dividend_25" model="account.wht">
+            <field name="name">4.1.2 อัตราร้อยละ 25 ของกำไรสุทธิ</field>
+            <field name="amount">0.0</field>
+            <field name="active">True</field>
+            <field name="type_tax_use">purchase</field>
+            <field name="tax_application">payment</field>
+            <field name="income_type_id" ref="account_WHT.wht_income_type_auto_107"/>
+            <field name="account_id" search="[('code','=','152000')]" model="account.account"/>
+            <field name="refund_account_id" search="[('code','=','152000')]" model="account.account"/>
+            <field name="income_account_id" search="[('code','=','410000')]" model="account.account"/>
+            <field name="expense_account_id" search="[('code','=','540000')]" model="account.account"/>
+            <field name="tax_group_id" ref="account_WHT.tax_group_wht"/>
+        </record>
+
+        <record id="account_wht_dividend_20" model="account.wht">
+            <field name="name">4.1.3 อัตราร้อยละ 20 ของกำไรสุทธิ</field>
+            <field name="amount">0.0</field>
+            <field name="active">True</field>
+            <field name="type_tax_use">purchase</field>
+            <field name="tax_application">payment</field>
+            <field name="income_type_id" ref="account_WHT.wht_income_type_auto_112"/>
+            <field name="account_id" search="[('code','=','152000')]" model="account.account"/>
+            <field name="refund_account_id" search="[('code','=','152000')]" model="account.account"/>
+            <field name="income_account_id" search="[('code','=','410000')]" model="account.account"/>
+            <field name="expense_account_id" search="[('code','=','540000')]" model="account.account"/>
+            <field name="tax_group_id" ref="account_WHT.tax_group_wht"/>
+        </record>
+
+        <record id="account_wht_dividend_other" model="account.wht">
+            <field name="name">4.1.4  อัตราอื่นๆ</field>
+            <field name="amount">0.0</field>
+            <field name="active">True</field>
+            <field name="type_tax_use">purchase</field>
+            <field name="tax_application">payment</field>
+            <field name="income_type_id" ref="account_WHT.wht_income_type_auto_114"/>
+            <field name="account_id" search="[('code','=','152000')]" model="account.account"/>
+            <field name="refund_account_id" search="[('code','=','152000')]" model="account.account"/>
+            <field name="income_account_id" search="[('code','=','410000')]" model="account.account"/>
+            <field name="expense_account_id" search="[('code','=','540000')]" model="account.account"/>
+            <field name="tax_group_id" ref="account_WHT.tax_group_wht"/>
+        </record>
+
+        <record id="account_wht_dividend_exempted" model="account.wht">
+            <field name="name">4.2.1 กำไรสุทธิของกิจการที่ได้รับยกเว้นภาษีเงินได้นิติบุคคล</field>
+            <field name="amount">0.0</field>
+            <field name="active">True</field>
+            <field name="type_tax_use">purchase</field>
+            <field name="tax_application">payment</field>
+            <field name="income_type_id" ref="account_WHT.wht_income_type_auto_111"/>
+            <field name="account_id" search="[('code','=','152000')]" model="account.account"/>
+            <field name="refund_account_id" search="[('code','=','152000')]" model="account.account"/>
+            <field name="income_account_id" search="[('code','=','410000')]" model="account.account"/>
+            <field name="expense_account_id" search="[('code','=','540000')]" model="account.account"/>
+            <field name="tax_group_id" ref="account_WHT.tax_group_wht"/>
+        </record>
+
+        <record id="account_wht_dividend_nontax" model="account.wht">
+            <field name="name">4.2.2  เงินปันผลหรือเงินส่วนแบ่งของกำไรที่ได้รับยกเว้นไม่ต้องนำมารวม คำนวณเป็นรายได้เพื่อเสียภาษีเงินได้นิติบุคคล</field>
+            <field name="amount">0.0</field>
+            <field name="active">True</field>
+            <field name="type_tax_use">purchase</field>
+            <field name="tax_application">payment</field>
+            <field name="income_type_id" ref="account_WHT.wht_income_type_auto_102"/>
+            <field name="account_id" search="[('code','=','152000')]" model="account.account"/>
+            <field name="refund_account_id" search="[('code','=','152000')]" model="account.account"/>
+            <field name="income_account_id" search="[('code','=','410000')]" model="account.account"/>
+            <field name="expense_account_id" search="[('code','=','540000')]" model="account.account"/>
+            <field name="tax_group_id" ref="account_WHT.tax_group_wht"/>
+        </record>
+
+        <record id="account_wht_dividend_carryover" model="account.wht">
+            <field name="name">4.2.3  กำไรสุทธิส่วนที่ได้หักผลขาดทุนสุทธิยกมาไม่เกิน5ปี ก่อนรอบระยะเวลาบัญชีปีปัจจุบัน</field>
+            <field name="amount">0.0</field>
+            <field name="active">True</field>
+            <field name="type_tax_use">purchase</field>
+            <field name="tax_application">payment</field>
+            <field name="income_type_id" ref="account_WHT.wht_income_type_auto_100"/>
+            <field name="account_id" search="[('code','=','152000')]" model="account.account"/>
+            <field name="refund_account_id" search="[('code','=','152000')]" model="account.account"/>
+            <field name="income_account_id" search="[('code','=','410000')]" model="account.account"/>
+            <field name="expense_account_id" search="[('code','=','540000')]" model="account.account"/>
+            <field name="tax_group_id" ref="account_WHT.tax_group_wht"/>
+        </record>
+
+        <record id="account_wht_dividend_equity" model="account.wht">
+            <field name="name">4.2.4 กำไรที่รับรู้ทางบัญชีโดยวิธีส่วนได้เสีย</field>
+            <field name="amount">0.0</field>
+            <field name="active">True</field>
+            <field name="type_tax_use">purchase</field>
+            <field name="tax_application">payment</field>
+            <field name="income_type_id" ref="account_WHT.wht_income_type_auto_110"/>
+            <field name="account_id" search="[('code','=','152000')]" model="account.account"/>
+            <field name="refund_account_id" search="[('code','=','152000')]" model="account.account"/>
+            <field name="income_account_id" search="[('code','=','410000')]" model="account.account"/>
+            <field name="expense_account_id" search="[('code','=','540000')]" model="account.account"/>
+            <field name="tax_group_id" ref="account_WHT.tax_group_wht"/>
+        </record>
+
+        <record id="account_wht_dividend_other2" model="account.wht">
+            <field name="name">4.2.5 อื่นๆ</field>
+            <field name="amount">0.0</field>
+            <field name="active">True</field>
+            <field name="type_tax_use">purchase</field>
+            <field name="tax_application">payment</field>
+            <field name="income_type_id" ref="account_WHT.wht_income_type_auto_105"/>
+            <field name="account_id" search="[('code','=','152000')]" model="account.account"/>
+            <field name="refund_account_id" search="[('code','=','152000')]" model="account.account"/>
+            <field name="income_account_id" search="[('code','=','410000')]" model="account.account"/>
+            <field name="expense_account_id" search="[('code','=','540000')]" model="account.account"/>
+            <field name="tax_group_id" ref="account_WHT.tax_group_wht"/>
+        </record>
+
+        <!-- ============================================================ -->
+        <!-- มาตรา 40 (5) — ค่าจ้างทำของ บริการ เช่า ขนส่ง โฆษณา         -->
+        <!-- ============================================================ -->
+        <record id="account_wht_service_3" model="account.wht">
+            <field name="name">5. ค่าจ้างทำของ(3%)</field>
+            <field name="amount">3.0</field>
+            <field name="active">True</field>
+            <field name="type_tax_use">purchase</field>
+            <field name="tax_application">payment</field>
+            <field name="income_type_id" ref="account_WHT.wht_income_type_auto_109"/>
+            <field name="account_id" search="[('code','=','152000')]" model="account.account"/>
+            <field name="refund_account_id" search="[('code','=','152000')]" model="account.account"/>
+            <field name="income_account_id" search="[('code','=','410000')]" model="account.account"/>
+            <field name="expense_account_id" search="[('code','=','540000')]" model="account.account"/>
+            <field name="tax_group_id" ref="account_WHT.tax_group_wht"/>
+        </record>
+
+        <record id="account_wht_transport_1" model="account.wht">
+            <field name="name">5. ค่าขนส่ง(1%)</field>
+            <field name="amount">1.0</field>
+            <field name="active">True</field>
+            <field name="type_tax_use">purchase</field>
+            <field name="tax_application">payment</field>
+            <field name="income_type_id" ref="account_WHT.wht_income_type_auto_109"/>
+            <field name="account_id" search="[('code','=','152000')]" model="account.account"/>
+            <field name="refund_account_id" search="[('code','=','152000')]" model="account.account"/>
+            <field name="income_account_id" search="[('code','=','410000')]" model="account.account"/>
+            <field name="expense_account_id" search="[('code','=','540000')]" model="account.account"/>
+            <field name="tax_group_id" ref="account_WHT.tax_group_wht"/>
+        </record>
+
+        <record id="account_wht_rent_5" model="account.wht">
+            <field name="name">5. ค่าเช่าอสังหาริมทรัพย์(5%)</field>
+            <field name="amount">5.0</field>
+            <field name="active">True</field>
+            <field name="type_tax_use">purchase</field>
+            <field name="tax_application">payment</field>
+            <field name="income_type_id" ref="account_WHT.wht_income_type_auto_109"/>
+            <field name="account_id" search="[('code','=','152000')]" model="account.account"/>
+            <field name="refund_account_id" search="[('code','=','152000')]" model="account.account"/>
+            <field name="income_account_id" search="[('code','=','410000')]" model="account.account"/>
+            <field name="expense_account_id" search="[('code','=','540000')]" model="account.account"/>
+            <field name="tax_group_id" ref="account_WHT.tax_group_wht"/>
+        </record>
+
+        <record id="account_wht_advertising_1" model="account.wht">
+            <field name="name">5. ค่าโฆษณา(1%)</field>
+            <field name="amount">1.0</field>
+            <field name="active">True</field>
+            <field name="type_tax_use">purchase</field>
+            <field name="tax_application">payment</field>
+            <field name="income_type_id" ref="account_WHT.wht_income_type_auto_109"/>
+            <field name="account_id" search="[('code','=','152000')]" model="account.account"/>
+            <field name="refund_account_id" search="[('code','=','152000')]" model="account.account"/>
+            <field name="income_account_id" search="[('code','=','410000')]" model="account.account"/>
+            <field name="expense_account_id" search="[('code','=','540000')]" model="account.account"/>
+            <field name="tax_group_id" ref="account_WHT.tax_group_wht"/>
+        </record>
+
+        <!-- ============================================================ -->
+        <!-- มาตรา 40 (6) — วิชาชีพอิสระ                                  -->
+        <!-- ============================================================ -->
+        <record id="account_wht_professional_3" model="account.wht">
+            <field name="name">6. ค่าบริการวิชาชีพอิสระ</field>
+            <field name="amount">3.0</field>
+            <field name="active">True</field>
+            <field name="type_tax_use">purchase</field>
+            <field name="tax_application">payment</field>
+            <field name="income_type_id" ref="account_WHT.wht_income_type_auto_108"/>
+            <field name="account_id" search="[('code','=','152000')]" model="account.account"/>
+            <field name="refund_account_id" search="[('code','=','152000')]" model="account.account"/>
+            <field name="income_account_id" search="[('code','=','410000')]" model="account.account"/>
+            <field name="expense_account_id" search="[('code','=','540000')]" model="account.account"/>
+            <field name="tax_group_id" ref="account_WHT.tax_group_wht"/>
+        </record>
+
+    </data>
+
+    <!-- System Parameters for Docker Environment to fix unstyled PDF layouts -->
+    <data noupdate="0">
+        <record id="system_parameter_report_url" model="ir.config_parameter">
+            <field name="key">report.url</field>
+            <field name="value">http://127.0.0.1:8069</field>
+        </record>
+    </data>
+</odoo>

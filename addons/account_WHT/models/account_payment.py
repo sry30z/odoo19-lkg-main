@@ -132,7 +132,7 @@ class AccountPayment(models.Model):
                     certificate.certificate_no, self.name,
                 )
             except Exception as confirm_err:
-                _logger.warning(
+                _logger.exception(
                     "[WHT CERT] Auto-confirm failed for %s — remaining in draft: %s",
                     certificate.certificate_no, str(confirm_err),
                 )
@@ -237,3 +237,20 @@ class AccountPayment(models.Model):
         for payment in self:
             payment.wht_amount = 0.00
             payment.after_wh_payment_amount = payment.amount
+
+    def action_cancel(self):
+        res = super().action_cancel()
+        # TASK 8: Cancellation Safety - automatically cancel related WHT certificates
+        certificates = self.env["account.wht.certificate"].search([
+            "|",
+            ("payment_id", "in", self.ids),
+            ("payment_ids", "in", self.ids),
+            ("state", "!=", "cancel"),
+        ])
+        for cert in certificates:
+            try:
+                cert.action_cancel()
+                _logger.info("[WHT CANCEL] Cancelled WHT Certificate %s due to payment cancellation", cert.certificate_no)
+            except Exception as e:
+                _logger.exception("[WHT CANCEL ERROR] Failed to cancel WHT Certificate %s: %s", cert.certificate_no, str(e))
+        return res

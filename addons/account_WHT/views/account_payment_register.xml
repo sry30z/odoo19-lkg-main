@@ -37,15 +37,15 @@
                     </group>
                     <group name="wht_right_group">
                         <field name="sub_amount" widget="monetary" options="{'currency_field': 'currency_id'}" readonly="1" force_save="1" help="ยอดเงินที่ต้องชำระตามบิลต้นทาง" />
-                        <field name="adjust_wht" help="ติ๊กเพื่อปรับปรุงการคำนวณภาษีหัก ณ จ่าย" />
-                        <field name="is_wht" help="เลือกเพื่อเปิดใช้งานภาษีหัก ณ จ่าย" />
+                        <field name="adjust_wht" help="ติ๊กเพื่อปรับปรุงการคำนวณภาษีหัก ณ ที่จ่าย" />
+                        <field name="is_wht" help="เลือกเพื่อเปิดใช้งานภาษีหัก ณ ที่จ่าย" />
 
                         <field name="wht_type" invisible="not is_wht" force_save="1" help="ประเภทแบบยื่นภาษี (ภ.ง.ด.1, ภ.ง.ด.3, ภ.ง.ด.53)" />
                         <field name="wht_pay_type" invisible="not is_wht" force_save="1" help="ประเภทการหักภาษี: หักฯจ่าย = หักออกจากยอดจ่าย, ออกให้ = จ่ายเต็มยอดแล้วหักภาษีเพิ่ม" widget="selection"/>
                     </group>
                 </group>
                 <!-- Alert Box -->
-                <div class="alert alert-warning" role="alert" invisible="not is_wht" style="margin-top: 5px; margin-bottom: 5px; font-size: 0.9em;">ตรวจสอบยอดภาษีหัก ณ จ่ายสำหรับการชำระบางส่วน หรือลดหนี้</div>
+                <div class="alert alert-warning" role="alert" invisible="not is_wht" style="margin-top: 5px; margin-bottom: 5px; font-size: 0.9em;">ตรวจสอบยอดภาษีหัก ณ ที่จ่ายสำหรับการชำระบางส่วน หรือลดหนี้</div>
                 <!-- Warning Box for multiple bills -->
                 <div class="alert alert-warning" role="alert" invisible="not wht_warning" style="margin-top: 5px; margin-bottom: 5px; font-size: 0.9em;">
                     <field name="wht_warning" nolabel="1"/>
@@ -67,8 +67,8 @@
                 <group name="wht_summary_group">
                     <group />
                     <group name="wht_totals" class="oe_subtotal_footer oe_right">
-                        <field name="wht_amount" string="Withholding Tax" widget="monetary" invisible="not is_wht" readonly="1" force_save="1" help="ยอดภาษีหัก ณ จ่ายที่คำนวณจากฐานคำนวณ" />
-                        <field name="after_wh_payment_amount" string="Net Paid" widget="monetary" readonly="1" force_save="1" class="oe_subtotal_footer_separator" help="ยอดจ่ายสุทธิหลังหักภาษีหัก ณ จ่าย (ยอดเดิม - ภาษี)" />
+                        <field name="wht_amount" string="Withholding Tax" widget="monetary" invisible="not is_wht" readonly="1" force_save="1" help="ยอดภาษีหัก ณ ที่จ่ายที่คำนวณจากฐานคำนวณ" />
+                        <field name="after_wh_payment_amount" string="Net Paid" widget="monetary" readonly="1" force_save="1" class="oe_subtotal_footer_separator" help="ยอดจ่ายสุทธิหลังหักภาษีหัก ณ ที่จ่าย (ยอดเดิม - ภาษี)" />
                         <field name="payment_date" help="วันที่ชำระเงิน" />
                         <field name="communication" string="Memo" help="ข้อความอ้างอิงการชำระ" />
                         <!-- Carry original amount for Odoo internal logic -->

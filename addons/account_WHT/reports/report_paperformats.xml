@@ -16,23 +16,4 @@
         <field name="disable_shrinking" eval="False"/>
     </record>
 
-    <!-- Update Sale Order Report to use this paperformat -->
-    <record id="sale.action_report_saleorder" model="ir.actions.report">
-        <field name="paperformat_id" ref="account_WHT.paperformat_thai_compact"/>
-    </record>
-
-    <!-- Update Purchase Order Report to use this paperformat -->
-    <record id="purchase.action_report_purchase_order" model="ir.actions.report">
-        <field name="paperformat_id" ref="account_WHT.paperformat_thai_compact"/>
-    </record>
-
-    <!-- Update RFQ Report to use this paperformat -->
-    <record id="purchase.report_purchase_quotation" model="ir.actions.report">
-        <field name="paperformat_id" ref="account_WHT.paperformat_thai_compact"/>
-    </record>
-
-    <!-- Update Invoice/Bill Report to use this paperformat -->
-    <record id="account.account_invoices" model="ir.actions.report">
-        <field name="paperformat_id" ref="account_WHT.paperformat_thai_compact"/>
-    </record>
 </odoo>

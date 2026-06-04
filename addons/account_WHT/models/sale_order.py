@@ -8,7 +8,7 @@ class SaleOrder(models.Model):
     amount_wht = fields.Monetary(string='WHT Amount', compute='_compute_wht_totals', store=True)
     amount_net_total = fields.Monetary(string='Net Total', compute='_compute_wht_totals', store=True)
     wht_pay_type = fields.Selection([
-        ('normal', 'หัก ณ จ่าย'),
+        ('normal', 'หัก ณ ที่จ่าย'),
         ('gross_up_forever', 'ออกให้ตลอด'),
         ('gross_up_once', 'ออกให้ครั้งเดียว'),
     ], string='WHT Pay Type', default='normal')

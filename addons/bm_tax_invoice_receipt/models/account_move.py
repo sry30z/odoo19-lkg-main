@@ -42,9 +42,6 @@ class AccountMove(models.Model):
             else:
                 move.matched_payment_compute_ids = False
 
-    def _get_name_invoice_report(self):
-        self.ensure_one()
-        return 'bm_tax_invoice_receipt.report_invoice_document'
 
     def _compute_tax(self):
         for move in self:

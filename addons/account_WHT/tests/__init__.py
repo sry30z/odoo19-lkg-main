@@ -24,7 +24,7 @@ class TestWHTCalculationService(TransactionCase):
         self.service = self.env['wht.calculation.service']
     
     def test_calculate_wht_normal(self):
-        """Test normal WHT calculation (หัก ณ จ่าย)"""
+        """Test normal WHT calculation (หัก ณ ที่จ่าย)"""
         # Base 1000, Rate 3%, Normal
         result = self.service.calculate_wht(1000.0, 3.0, 'normal')
         

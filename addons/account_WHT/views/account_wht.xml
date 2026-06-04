@@ -204,13 +204,14 @@
                                 <field name="name" />
                                 <field name="tax_code" />
                                 <field name="type_tax_use" />
+                                <field name="calculation_base" />
                                 <field name="tax_application" />
                                 <field name="amount" />
                             </group>
                             <group>
                                 <field name="account_id" />
                                 <field name="refund_account_id" />
-                                <field name="sale_tax_id" invisible="type_tax_use != 'tax'" />
+                                <field name="sale_tax_id" invisible="calculation_base != 'vat' and type_tax_use != 'tax'" />
                             </group>
                         </group>
                         <notebook>

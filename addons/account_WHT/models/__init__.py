@@ -13,4 +13,3 @@ from . import account_move_tax_lines
 from . import sale_order
 from . import purchase_order
 from . import res_company
-

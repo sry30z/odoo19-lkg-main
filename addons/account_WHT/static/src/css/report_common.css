@@ -2,8 +2,8 @@
 /* This file is for HTML preview (browser). PDF uses report_common_styles.xml */
 
 /* ===== BASE FONT ===== */
-body, * {
-    font-family: 'TH Sarabun New', 'Garuda', Tahoma, sans-serif !important;
+.th-page, .th-page * {
+    font-family: 'Sarabun', 'NotoSansThai', 'TH Sarabun New', 'Garuda', Tahoma, sans-serif !important;
     line-height: 1.2 !important;
 }
 

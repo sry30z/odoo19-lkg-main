@@ -43,7 +43,7 @@ class WHTCalculationService(models.AbstractModel):
             base_amount (float): Base amount before WHT
             rate (float): WHT rate in percentage (e.g., 3.0 for 3%)
             wht_pay_type (str): Payment type
-                - 'normal': Normal withholding (หัก ณ จ่าย)
+                - 'normal': Normal withholding (หัก ณ ที่จ่าย)
                 - 'gross_up_forever': Gross up forever (ออกให้ตลอด)
                 - 'gross_up_once': Gross up once (ออกให้ครั้งเดียว)
             rounding (int): Number of decimal places for rounding (default: 2)
@@ -77,38 +77,37 @@ class WHTCalculationService(models.AbstractModel):
         
         if wht_pay_type == 'gross_up_forever':
             # Gross up forever: base includes WHT
-            # Formula: base = net_amount / (1 - rate)
-            # WHT = base * rate
-            # Gross-up = WHT
             if abs(1 - rate_decimal) < 1e-9:
                 raise UserError(_("WHT rate cannot be 100%% for gross-up forever calculation"))
             
-            base = base_amount / (1 - rate_decimal)
+            base = round(base_amount / (1 - rate_decimal), rounding)
             wht = round(base * rate_decimal, rounding)
             gross_up = wht
+            net = base_amount
+            total = base
             
         elif wht_pay_type == 'gross_up_once':
-            # Gross up once: base includes WHT for this payment only
-            # Formula: gross_up = net_amount * rate
-            # base = net_amount + gross_up
-            # WHT = base * rate
-            # Gross-up = WHT - (net_amount * rate) = 0 (simplified)
-            gross_up = round(base_amount * rate_decimal, rounding)
-            base = base_amount + gross_up
-            wht = round(base * rate_decimal, rounding)
+            # Gross up once: tax is calculated on the original amount
+            wht = round(base_amount * rate_decimal, rounding)
+            base = base_amount
+            gross_up = wht
+            net = base_amount
+            total = base_amount + wht
             
         else:
             # Normal withholding: WHT deducted from payment
-            # Formula: WHT = base * rate
-            # Gross-up = 0
             base = base_amount
             wht = round(base * rate_decimal, rounding)
             gross_up = 0.0
+            net = round(base_amount - wht, rounding)
+            total = base_amount
         
         return {
             'base': base,
             'wht': wht,
-            'gross_up': gross_up
+            'gross_up': gross_up,
+            'net': net,
+            'total': total
         }
     
     @api.model
@@ -148,7 +147,7 @@ class WHTCalculationService(models.AbstractModel):
         """
         result = {
             'by_line': [],
-            'total': {'base': 0.0, 'wht': 0.0, 'gross_up': 0.0}
+            'total': {'base': 0.0, 'wht': 0.0, 'gross_up': 0.0, 'net': 0.0, 'total': 0.0}
         }
         
         for line in invoice.invoice_line_ids:
@@ -173,6 +172,8 @@ class WHTCalculationService(models.AbstractModel):
                     result['total']['base'] += calc['base']
                     result['total']['wht'] += calc['wht']
                     result['total']['gross_up'] += calc['gross_up']
+                    result['total']['net'] += calc['net']
+                    result['total']['total'] += calc['total']
                     
                 except (UserError, ValueError) as e:
                     _logger.warning(
@@ -186,6 +187,8 @@ class WHTCalculationService(models.AbstractModel):
         result['total']['base'] = round(result['total']['base'], 2)
         result['total']['wht'] = round(result['total']['wht'], 2)
         result['total']['gross_up'] = round(result['total']['gross_up'], 2)
+        result['total']['net'] = round(result['total']['net'], 2)
+        result['total']['total'] = round(result['total']['total'], 2)
         
         return result
     
