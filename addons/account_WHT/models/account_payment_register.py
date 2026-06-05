@@ -268,6 +268,7 @@ class AccountPaymentRegister(models.TransientModel):
             write_off_lines.append({
                 'name': w_line.name or wht.name or 'WHT',
                 'amount': amount_diff,
+                'amount_currency': amount_diff,
                 'account_id': account.id,
             })
 
