@@ -2,14 +2,27 @@
 /* This file is for HTML preview (browser). PDF uses report_common_styles.xml */
 
 /* ===== BASE FONT ===== */
-body, * {
-    font-family: 'TH Sarabun New', 'Garuda', Tahoma, sans-serif !important;
+.th-page, .th-page * {
+    font-family: 'Sarabun', 'NotoSansThai', 'TH Sarabun New', 'Garuda', Tahoma, sans-serif !important;
     line-height: 1.2 !important;
 }
 
 /* ===== PAGE ===== */
 .th-page {
     padding-top: 0px !important;
+}
+
+@media print {
+    @page {
+        margin: 0;
+    }
+    .page {
+        padding-top: 30mm !important;
+        padding-bottom: 30mm !important;
+    }
+    .page.th-header-padded {
+        padding-top: 30mm !important;
+    }
 }
 
 /* ===== HEADER LAYOUT ===== */

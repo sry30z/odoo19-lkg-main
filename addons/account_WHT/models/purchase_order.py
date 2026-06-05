@@ -1,4 +1,5 @@
-from odoo import fields, models, api
+from odoo import fields, models, api, _
+from odoo.exceptions import UserError
 
 class PurchaseOrder(models.Model):
     _inherit = 'purchase.order'
@@ -7,7 +8,7 @@ class PurchaseOrder(models.Model):
     amount_wht = fields.Monetary(string='WHT Amount', compute='_compute_wht_totals', store=True)
     amount_net_total = fields.Monetary(string='Net Total', compute='_compute_wht_totals', store=True)
     wht_pay_type = fields.Selection([
-        ('normal', 'หัก ณ จ่าย'),
+        ('normal', 'หัก ณ ที่จ่าย'),
         ('gross_up_forever', 'ออกให้ตลอด'),
         ('gross_up_once', 'ออกให้ครั้งเดียว'),
     ], string='WHT Pay Type', default='normal')
@@ -29,6 +30,8 @@ class PurchaseOrder(models.Model):
                     for wht in line.wht_tax_ids:
                         rate = wht.amount / 100.0
                         if order.wht_pay_type == 'gross_up_forever':
+                            if abs(1 - rate) < 1e-9:
+                                raise UserError(_("WHT rate cannot be 100%% for gross-up forever calculation (tax: %s).") % wht.name)
                             base = line.price_subtotal / (1 - rate)
                         elif order.wht_pay_type == 'gross_up_once':
                             base = line.price_subtotal * (1 + rate)
@@ -68,6 +71,8 @@ class PurchaseOrderLine(models.Model):
                 for wht in taxes:
                     rate = wht.amount / 100.0
                     if pay_type == 'gross_up_forever':
+                        if abs(1 - rate) < 1e-9:
+                            raise UserError(_("WHT rate cannot be 100%% for gross-up forever calculation (tax: %s).") % wht.name)
                         base = line.price_subtotal / (1 - rate)
                     elif pay_type == 'gross_up_once':
                         base = line.price_subtotal * (1 + rate)

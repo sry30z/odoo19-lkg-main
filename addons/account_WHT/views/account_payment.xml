@@ -11,18 +11,13 @@
                         <field name="wht_certificate_count" widget="statinfo" string="WHT Certificates"/>
                     </button>
                 </xpath>
-                <field name="amount" invisible="move_id != False"/>
-
-                <field name="currency_id" invisible="move_id != False" />
-
 
                 <xpath expr="//field[@name='date']" position="before">
-                    <field name="move_id"
-                           invisible="1"/>
+                    <!-- move_id field is not directly defined in the model, but used via related fields -->
                     <field name="payment_amount"
                            force_save="1"
                            readonly="state !=  'draft'"
-                           invisible="move_id ==  False"/>
+                           invisible="1"/>
                     <field name="override_wht"
                            force_save="1"
                            invisible="1"
@@ -36,13 +31,7 @@
                            options="{'no_create': True}"/>
 
                     <field name="wht_amount" string="WHT Amount" readonly="1" force_save="1"/>
-                    <field name="amount"
-                           string="Net Amount"
-                           readonly="state !=  'draft'"
-                           invisible="move_id ==  False"/>
-
-
-                    <field name="after_wh_payment_amount" invisible="0"/>
+                    <field name="after_wh_payment_amount" string="Net Payment" readonly="1" force_save="1"/>
                 </xpath>
 
             </field>

@@ -8,8 +8,8 @@
             <field name="arch" type="xml">
                 <form string="WHT Certificate">
                     <header>
-                        <button name="action_recompute_from_bills" string="🔄 ดึงรายการใหม่จากบิล" type="object" class="btn-secondary" invisible="1" />
-                        <button name="action_confirm" string="✅ ยืนยันและออกเลขที่" type="object" class="btn-primary" invisible="1" />
+                        <button name="action_recompute_from_bills" string="🔄 ดึงรายการใหม่จากบิล" type="object" class="btn-secondary" invisible="state != 'draft'" />
+                        <button name="action_confirm" string="✅ ยืนยันและออกเลขที่" type="object" class="btn-primary" invisible="state != 'draft'" />
                         <button name="action_preview_50tawi" string="Preview" type="object" class="btn-info" />
                         <button name="action_print_50tawi" string="Print Withholding Tax" type="object" class="btn-primary" invisible="state == 'draft'" />
                         <button name="action_send_email" string="Send Withholding Tax" type="object" class="btn-secondary" invisible="state == 'draft'" />
@@ -37,6 +37,7 @@
                                 <field name="income_type" />
                                 <field name="wht_reference" />
                                 <field name="payment_id" invisible="not payment_id" />
+                                <field name="payment_ids" widget="many2many_tags" invisible="not payment_ids" string="Payments" />
                                 <field name="move_ids" invisible="1" />
                                 <field name="company_id" groups="base.group_multi_company" />
                             </group>
@@ -57,6 +58,18 @@
                                 <field name="partner_address" />
                             </group>
                         </group>
+                        <!-- Historical Snapshots — read-only; frozen at certificate creation time -->
+                        <group string="ข้อมูลอ้างอิง ณ วันที่ออก (Snapshot)" name="snapshot_info"
+                              invisible="not partner_name_snapshot and not bill_reference_snapshot">
+                            <group>
+                                <field name="partner_name_snapshot" string="ชื่อผู้จ่าย (ขณะออก)" readonly="1" />
+                                <field name="bill_reference_snapshot" string="เลขที่ใบแจ้งหนี้ (ขณะออก)" readonly="1" />
+                            </group>
+                            <group>
+                                <field name="invoice_date_snapshot" string="วันที่ใบแจ้งหนี้ (ขณะออก)" readonly="1" />
+                                <field name="branch_snapshot" string="สาขา (ขณะออก)" readonly="1" />
+                            </group>
+                        </group>
                         <notebook>
                             <page string="WHT Detail Lines" name="wht_lines">
                                 <field name="line_ids">
@@ -68,6 +81,31 @@
                                         <field name="pay_date" />
                                         <field name="base_amount" sum="Total Base" />
                                         <field name="tax_amount" sum="Total Tax" />
+                                    </list>
+                                </field>
+                            </page>
+                            <page string="Source Bills" name="source_bills"
+                                  invisible="not move_ids">
+                                <field name="move_ids" string="Bills/Invoices" readonly="1">
+                                    <list>
+                                        <field name="name" string="Bill No." />
+                                        <field name="invoice_date" string="Bill Date" />
+                                        <field name="partner_id" string="Vendor" />
+                                        <field name="amount_total" string="Total" />
+                                        <field name="payment_state" string="Payment State" />
+                                    </list>
+                                </field>
+                            </page>
+                            <page string="Linked Payments" name="linked_payments"
+                                  invisible="not payment_ids">
+                                <field name="payment_ids" string="Payments" readonly="1">
+                                    <list>
+                                        <field name="name" string="Payment Ref." />
+                                        <field name="date" string="Date" />
+                                        <field name="partner_id" string="Partner" />
+                                        <field name="amount" string="Amount" />
+                                        <field name="currency_id" string="Currency" />
+                                        <field name="state" string="Status" />
                                     </list>
                                 </field>
                             </page>
@@ -87,6 +125,7 @@
                     <field name="partner_id" />
                     <field name="wht_reference" string="Reference" />
                     <field name="move_ids" string="Bills/Invoices" />
+                    <field name="payment_ids" string="Payments" />
                     <field name="wht_type" string="WHT Type" />
                     <separator />
                     <filter name="filter_draft" string="Draft" domain="[('state','=','draft')]" />
@@ -128,7 +167,8 @@
                     <field name="wht_pay_type" optional="hide" />
                     <field name="wht_reference" optional="show" />
                     <field name="move_ids" widget="many2many_tags" optional="show" />
-                    <field name="payment_id" optional="show" />
+                    <field name="payment_ids" widget="many2many_tags" optional="show" string="Payments" />
+                    <field name="payment_id" optional="hide" />
                     <field name="partner_id" />
                     <field name="base_amount" />
                     <field name="tax_amount" />
@@ -164,13 +204,14 @@
                                 <field name="name" />
                                 <field name="tax_code" />
                                 <field name="type_tax_use" />
+                                <field name="calculation_base" />
                                 <field name="tax_application" />
                                 <field name="amount" />
                             </group>
                             <group>
                                 <field name="account_id" />
                                 <field name="refund_account_id" />
-                                <field name="sale_tax_id" invisible="type_tax_use != 'tax'" />
+                                <field name="sale_tax_id" invisible="calculation_base != 'vat' and type_tax_use != 'tax'" />
                             </group>
                         </group>
                         <notebook>

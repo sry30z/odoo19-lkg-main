@@ -1,4 +1,9 @@
-from odoo import fields, models, api
+from odoo import fields, models, api, _
+from odoo.exceptions import UserError
+from .wht_calculation_service import WHTCalculationService
+import logging
+
+_logger = logging.getLogger(__name__)
 
 class AccountPaymentRegister(models.TransientModel):
     _inherit = 'account.payment.register'
@@ -19,7 +24,7 @@ class AccountPaymentRegister(models.TransientModel):
     ], string='WHT Type')
 
     wht_pay_type = fields.Selection([
-        ('normal', 'หัก ณ จ่าย'),
+        ('normal', 'หัก ณ ที่จ่าย'),
         ('gross_up_forever', 'ออกให้ตลอด'),
         ('gross_up_once', 'ออกให้ครั้งเดียว'),
     ], string='WHT Pay Type', default='normal')
@@ -137,15 +142,16 @@ class AccountPaymentRegister(models.TransientModel):
             for line in inv.invoice_line_ids:
                 if 'wht_tax_ids' in line._fields and line.wht_tax_ids:
                     for wht in line.wht_tax_ids:
-                        rate = wht.amount / 100.0
-                        base_amount = line.price_subtotal * ratio
-                        
-                        if self.wht_pay_type == 'gross_up_forever':
-                            base_amount = base_amount / (1 - rate)
-                        elif self.wht_pay_type == 'gross_up_once':
-                            base_amount = base_amount + (base_amount * rate)
-                            
-                        wht_amount = round(base_amount * rate, 2)
+                        try:
+                            calc = WHTCalculationService.compute_wht_by_pay_type(
+                                line.price_subtotal * ratio,
+                                wht.amount,
+                                self.wht_pay_type or 'normal',
+                            )
+                        except ValueError as ve:
+                            raise UserError(str(ve))
+                        base_amount = calc['base']
+                        wht_amount  = calc['wht']
                         account = wht.account_id if inv.move_type == 'in_invoice' else wht.refund_account_id
                         wht_lines.append((0, 0, {
                             'account_id': account.id if account else False,
@@ -160,15 +166,16 @@ class AccountPaymentRegister(models.TransientModel):
                     for tax in line.tax_ids:
                         wht = wht_by_tax_id.get(tax.id)
                         if wht:
-                            rate = wht.amount / 100.0
-                            base_amount = line.price_subtotal * ratio
-                            
-                            if self.wht_pay_type == 'gross_up_forever':
-                                base_amount = base_amount / (1 - rate)
-                            elif self.wht_pay_type == 'gross_up_once':
-                                base_amount = base_amount + (base_amount * rate)
-                                
-                            wht_amount = round(base_amount * rate, 2)
+                            try:
+                                calc = WHTCalculationService.compute_wht_by_pay_type(
+                                    line.price_subtotal * ratio,
+                                    wht.amount,
+                                    self.wht_pay_type or 'normal',
+                                )
+                            except ValueError as ve:
+                                raise UserError(str(ve))
+                            base_amount = calc['base']
+                            wht_amount  = calc['wht']
                             account = wht.account_id if inv.move_type == 'in_invoice' else wht.refund_account_id
                             wht_lines.append((0, 0, {
                                 'account_id': account.id if account else False,
@@ -193,10 +200,8 @@ class AccountPaymentRegister(models.TransientModel):
             if self.wht_pay_type == 'gross_up_forever':
                 self.amount = self.sub_amount
             elif self.wht_pay_type == 'gross_up_once':
-                # Base is original + WHT_exp. Net = Base - WHT. Net = original_sub_amount + (WHT_exp - WHT)
-                # But typically vendors want their full net amount.
-                base_total = sum(l[2]['base_amount'] for l in wht_lines)
-                self.amount = base_total - wht_total
+                # Vendor receives full original amount; company pays WHT additionally
+                self.amount = self.sub_amount
             else:
                 self.amount = self.sub_amount - wht_total
 
@@ -209,9 +214,7 @@ class AccountPaymentRegister(models.TransientModel):
             full_net = self.sub_amount
             if self.wht_pay_type == 'normal':
                 full_net = self.sub_amount - full_wht
-            elif self.wht_pay_type == 'gross_up_once':
-                base_total = sum(l[2]['base_amount'] for l in full_wht_lines)
-                full_net = base_total - full_wht
+            # gross_up_forever and gross_up_once: vendor receives full sub_amount
             
             if full_net and self.amount != full_net:
                 ratio = self.amount / full_net
@@ -223,14 +226,117 @@ class AccountPaymentRegister(models.TransientModel):
             self.wht_line_ids = [(5, 0, 0)] + scaled_lines
 
 
+    def _create_payment_vals_from_wizard(self, batch_result):
+        """
+        Override Odoo native payment vals builder to inject WHT write-off lines.
+        This allows WHT to hit the GL and participate in invoice reconciliation natively.
+        """
+        vals = super()._create_payment_vals_from_wizard(batch_result)
+        
+        if not getattr(self, 'is_wht', False) or not self.wht_line_ids:
+            return vals
+
+        write_off_lines = []
+        for w_line in self.wht_line_ids:
+            wht = w_line.wht_id
+            
+            # TASK 2: Enforce WHT Liability Account Validation
+            account = w_line.account_id or wht.account_id
+            if not account:
+                _logger.warning("[WHT] Skipping WHT line: No account configured for WHT %s", wht.name)
+                continue
+                
+            # Verify account type. Must not be income.
+            if account.account_type in ['income', 'income_other', 'asset_receivable']:
+                _logger.warning(
+                    "[WHT ERROR] Invalid WHT Account %s (Type: %s). Must be a Liability account. Skipping.",
+                    account.display_name, account.account_type
+                )
+                continue
+                
+            if account.company_ids and self.company_id not in account.company_ids:
+                _logger.warning(
+                    "[WHT ERROR] Account %s company mismatch. Skipping.",
+                    account.display_name
+                )
+                continue
+
+            # write_off_line_vals amount is negative for a credit (vendor payment) 
+            # Odoo's core subtracts this from the total amount
+            amount_diff = -w_line.amount if self.payment_type == 'outbound' else w_line.amount
+            
+            write_off_lines.append({
+                'name': w_line.name or wht.name or 'WHT',
+                'amount': amount_diff,
+                'amount_currency': amount_diff,
+                'account_id': account.id,
+            })
+
+        if write_off_lines:
+            # write_off_line_vals is handled natively by _create_payments() in Odoo core
+            vals['write_off_line_vals'] = write_off_lines
+            _logger.info("[WHT] Injected %d write-off lines for payment.", len(write_off_lines))
+
+        return vals
 
     def _create_payments(self):
+        """
+        Payment-centric WHT certificate creation.
+
+        NEW FLOW (PART 5 — Grouped Payment Fix):
+        1. Call super() to create payments (standard Odoo flow)
+        2. Force ORM refresh
+        3. Create ONE WHT certificate for the ENTIRE wizard batch, not one per payment.
+           This correctly handles all scenarios:
+           - Grouped payment (1 payment, N bills): 1 cert linked to all bills ✅
+           - Non-grouped payment (N payments, N bills): still 1 cert for all bills ✅
+             (Thai legal: one payment operation = one WHT certificate)
+           Uses the first (primary) payment as the cert's payment_id reference.
+           Passes all payment IDs in context for idempotency guard.
+        """
+        _logger.info("[WHT PAYMENT] START: Creating payments via Register Payment")
+
+        # STEP 1: Create payments (standard Odoo flow)
         payments = super()._create_payments()
-        # ส่งประเภท ภ.ง.ด. ไปบันทึกในรายการจ่ายเงิน
-        # (WHT Certificate จะถูกสร้างโดย action_post ใน account.payment แทน)
-        if self.is_wht and self.wht_amount > 0:
-            for payment in payments:
-                payment.wht_type = self.wht_type
+
+        if not payments:
+            _logger.info("[WHT PAYMENT] No payments created - skipping WHT finalization")
+            return payments
+
+        _logger.info("[WHT PAYMENT] Created %d payment(s)", len(payments))
+
+        # STEP 2: Force ORM refresh to ensure move_id / state are populated
+        self.env.flush_all()
+        payments.invalidate_recordset(['move_id', 'state', 'payment_type'])
+
+        # STEP 3: Create ONE certificate per wizard batch (not per individual payment).
+        # Skip entirely when the wizard carries no WHT lines.
+        if not getattr(self, 'is_wht', False) or not getattr(self, 'wht_line_ids', False):
+            _logger.info("[WHT PAYMENT] No WHT lines on wizard — skipping cert creation")
+            _logger.info("[WHT PAYMENT] END: Payment register flow completed")
+            return payments
+
+        primary_payment = payments[0]
+        _logger.info(
+            "[WHT PAYMENT] Creating 1 WHT cert for batch: %d payment(s), primary=%s",
+            len(payments), primary_payment.name,
+        )
+        try:
+            primary_payment.with_context(
+                wht_wizard=self,
+                wht_wizard_id=self.id,
+                # Pass ALL payment IDs so idempotency check covers the full batch.
+                # Prevents duplicate certs when the same wizard is retried.
+                wht_all_payment_ids=payments.ids,
+            )._create_wht_certificate_after_payment_creation()
+        except Exception as e:
+            _logger.exception(
+                "[WHT PAYMENT] ERROR: WHT cert creation failed for primary payment %s: %s",
+                primary_payment.name, str(e),
+            )
+            # CRITICAL: never re-raise — payment must succeed regardless of WHT failure
+
+        _logger.info("[WHT PAYMENT] END: Payment register flow completed")
         return payments
 
 class AccountPaymentRegisterWhtLine(models.TransientModel):

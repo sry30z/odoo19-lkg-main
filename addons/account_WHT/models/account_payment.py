@@ -1,31 +1,149 @@
 # -*- coding: utf-8 -*-
+import logging
 from odoo import fields, models, api, _, Command
+from odoo.exceptions import UserError
+from .wht_calculation_service import WHTCalculationService
+
+_logger = logging.getLogger(__name__)
 
 
 class AccountPayment(models.Model):
     _inherit = "account.payment"
 
-    def action_cancel(self):
-        res = super(AccountPayment, self).action_cancel()
-        for payment in self:
-            certs = self.env['account.wht.certificate'].search([
-                ('payment_id', '=', payment.id),
-                ('state', '!=', 'cancel')
-            ])
-            if certs:
-                certs.action_cancel()
-        return res
+    def _create_wht_certificate_after_payment_creation(self):
+        """
+        Orchestrator: Payment-Centric WHT Certificate Creation (Production-Grade)
 
-    def action_post(self):
-        res = super(AccountPayment, self).action_post()
-        # Trigger WHT certificate creation for all bills reconciled during this posting.
-        # This covers the "Register Payment from Bill" flow.
-        for payment in self:
-            if payment.payment_type == 'outbound':
-                bills = payment.reconciled_bill_ids
-                if bills:
-                    bills._create_wht_certificate_if_needed()
-        return res
+        รับผิดชอบ:
+          - Guards (ประเภท payment, ตรวจสอบ wizard)
+          - Idempotency check (ป้องกันใบซ้ำ)
+          - เรียก WHTCalculationService เพื่อเตรียมข้อมูลทั้งหมด
+          - ประกอบ cert_vals และ Create + Confirm
+
+        การคำนวณ / ค้นหา / snapshot ทั้งหมดถูกมอบหมายให้
+        WHTCalculationService (single source of truth)
+
+        ไม่ raise exception — WHT failure ต้องไม่ทำให้ payment ล้มเหลว
+        """
+        _logger.info("[WHT CERT] Processing certificate for payment %s (id=%s)",
+                     self.name or '', self.id)
+
+        # ── Guard: only outbound vendor payments ──────────────────────────────
+        if self.payment_type != 'outbound':
+            return
+        if self.partner_type not in ('supplier', 'vendor'):
+            return
+
+        # ── Guard: get wizard from context ────────────────────────────────────
+        wizard_id = self.env.context.get('wht_wizard_id')
+        if not wizard_id:
+            _logger.info("[WHT SKIP] No wht_wizard_id in context for payment %s", self.name)
+            return
+
+        wizard = self.env['account.payment.register'].browse(wizard_id).exists()
+        if not wizard:
+            _logger.info("[WHT SKIP] Wizard %s no longer exists for payment %s",
+                         wizard_id, self.name)
+            return
+
+        if not getattr(wizard, 'is_wht', False) or not wizard.wht_line_ids:
+            _logger.info("[WHT SKIP] Wizard has no WHT lines for payment %s", self.name)
+            return
+
+        # ── Idempotency: abort if certificate already exists ──────────────────
+        # wht_all_payment_ids ถูกส่งมาโดย _create_payments() เมื่อ wizard สร้างหลาย payment
+        # (non-grouped flow) — ตรวจสอบ ALL IDs เพื่อป้องกัน duplicate หลัง partial failure
+        _all_payment_ids = list(self.env.context.get('wht_all_payment_ids') or [self.id])
+        existing = self.env['account.wht.certificate'].search([
+            '&',
+            '|',
+            ('payment_id', 'in', _all_payment_ids),
+            ('payment_ids', 'in', _all_payment_ids),
+            ('state', '!=', 'cancel'),
+        ], limit=1)
+        if existing:
+            _logger.info(
+                "[WHT SKIP] Certificate %s already exists for payment batch %s",
+                existing.certificate_no, _all_payment_ids,
+            )
+            return
+
+        # ── All creation wrapped in try/except — payment must NEVER fail ──────
+        try:
+            service = WHTCalculationService(self.env)
+
+            # STEP 1: ค้นหาใบแจ้งหนี้ต้นทาง
+            invoices = service.discover_bills(wizard, self)
+
+            # STEP 2: บันทึก snapshot ข้อมูลพาร์ทเนอร์
+            partner_snap = service.partner_snapshot(self.partner_id)
+
+            # STEP 3: บันทึก snapshot ข้อมูลใบแจ้งหนี้
+            bill_snap = service.bill_snapshot(invoices, self)
+
+            # STEP 4: สร้าง WHT detail lines
+            lines_vals = service.build_detail_lines(wizard, invoices, self)
+
+            # STEP 5: รวบรวม source line IDs สำหรับ audit trail
+            src_line_ids = service.source_line_ids(invoices)
+
+            # STEP 6: ประกอบค่า certificate
+            cert_vals = {
+                # Core
+                'payment_id':  self.id,
+                'partner_id':  self.partner_id.id if self.partner_id else False,
+                'issue_date':  self.date,
+                'pay_date':    self.date,
+                'wht_type':    wizard.wht_type or 'pnd53',
+                'wht_pay_type': wizard.wht_pay_type or 'normal',
+                'state':       'draft',
+                # Partner + bill snapshots จาก service
+                **partner_snap,
+                **bill_snap,
+                # Detail lines
+                'line_ids': lines_vals,
+            }
+
+            if invoices:
+                cert_vals['move_ids'] = [(6, 0, invoices.ids)]
+            # เชื่อม ALL payments ใน batch (grouped-payment architecture)
+            cert_vals['payment_ids'] = [(6, 0, _all_payment_ids)]
+            if src_line_ids:
+                cert_vals['source_move_line_ids'] = [(6, 0, src_line_ids)]
+
+            # STEP 7: Create + Confirm
+            _logger.info(
+                "[WHT CERT] Creating certificate: partner=%s, bills=%s, lines=%d",
+                partner_snap.get('partner_name_snapshot', ''),
+                bill_snap.get('bill_reference_snapshot', ''),
+                len(lines_vals),
+            )
+            certificate = self.env['account.wht.certificate'].create(cert_vals)
+            _logger.info(
+                "[WHT CERT] Certificate created in draft: %s (id=%d)",
+                certificate.certificate_no, certificate.id,
+            )
+            # Auto-confirm: separate try/except so cert creation survives if confirm fails
+            try:
+                self.env.flush_all()  # ensure cert row is in DB before FOR UPDATE
+                certificate.action_confirm()
+                _logger.info(
+                    "[WHT CERT] Auto-confirmed %s for payment %s",
+                    certificate.certificate_no, self.name,
+                )
+            except Exception as confirm_err:
+                _logger.exception(
+                    "[WHT CERT] Auto-confirm failed for %s — remaining in draft: %s",
+                    certificate.certificate_no, str(confirm_err),
+                )
+                # Certificate stays in draft for manual confirmation; payment unaffected
+
+        except Exception as e:
+            _logger.exception(
+                "[WHT ERROR] Failed to create WHT certificate for payment %s: %s",
+                self.name or self.id, str(e),
+            )
+            # CRITICAL: ไม่ re-raise — payment ต้องสำเร็จไม่ว่า WHT จะล้มเหลว
 
     def _wht_domain(self):
         # แสดง WHT ทุกตัวที่ใช้กับการชำระเงิน (ทั้งฝั่ง Customer และ Vendor)
@@ -54,9 +172,13 @@ class AccountPayment(models.Model):
 
     def _compute_wht_certificate_count(self):
         for payment in self:
-            payment.wht_certificate_count = self.env[
-                "account.wht.certificate"
-            ].search_count([("payment_id", "=", payment.id)])
+            payment.wht_certificate_count = self.env["account.wht.certificate"].search_count([
+                '&',
+                '|',
+                ("payment_id", "=", payment.id),
+                ("payment_ids", "in", [payment.id]),
+                ("state", "!=", "cancel"),
+            ])
 
     def action_view_wht_certificates(self):
         self.ensure_one()
@@ -65,9 +187,16 @@ class AccountPayment(models.Model):
             "type": "ir.actions.act_window",
             "res_model": "account.wht.certificate",
             "view_mode": "list,form",
-            "domain": [("payment_id", "=", self.id)],
+            "domain": [
+                '&',
+                '|',
+                ("payment_id", "=", self.id),
+                ("payment_ids", "in", [self.id]),
+                ("state", "!=", "cancel"),
+            ],
             "context": {
                 "default_payment_id": self.id,
+                "default_payment_ids": [(4, self.id)],
                 "default_partner_id": self.partner_id.id,
             },
         }
@@ -88,7 +217,7 @@ class AccountPayment(models.Model):
         return {"domain": {"wht_ids": domain}}
 
     def _get_wht_payment_ratio(self, payment, invoices):
-        """ Calculate the ratio of payment to the invoices' net total. """
+        """ คำนวณสัดส่วนการชำระเงินเทียบกับยอดรวมใบแจ้งหนี้ (net total) """
         if not invoices:
             return 0.0
         target_net = sum(
@@ -102,264 +231,26 @@ class AccountPayment(models.Model):
 
     @api.depends("amount", "wht_ids")
     def compute_wht_amount(self):
+        # WHT amounts on payment are computed via account.payment.register (wizard).
+        # Direct computation from invoices is handled during the payment registration
+        # workflow. Here we ensure the stored fields always have a valid default.
         for payment in self:
-            final_amount = 0.00
-            invoices = False
-            if payment.reconciled_bill_ids:
-                invoices = payment.reconciled_bill_ids
-            if payment.reconciled_invoice_ids:
-                invoices = payment.reconciled_invoice_ids
-            if invoices:
-                percentage = self._get_wht_payment_ratio(payment, invoices)
-                for invoice in invoices:
-                    if invoice:
-                        if payment.override_wht and payment.wht_ids:
-                            for wht in payment.wht_ids:
-                                if wht.type_tax_use != "tax" and wht.amount:
-                                    wht_amount = round(
-                                        payment.amount * (wht.amount / 100), 2
-                                    )
-                                    final_amount += wht_amount
-                                if wht.type_tax_use == "tax":
-                                    tax_amount = round(
-                                        invoice.amount_untaxed
-                                        * (wht.sale_tax_id.amount / 100),
-                                        2,
-                                    )
-                                    wht_amount = round(
-                                        tax_amount * (wht.amount / 100), 2
-                                    )
-                                    final_amount += wht_amount
-                        else:
-                            for line in invoice.invoice_line_ids.filtered(
-                                lambda l: l.wht_tax_ids
-                            ):
-                                for wht in line.wht_tax_ids.filtered(
-                                    lambda w: w.tax_application == "payment"
-                                ):
-                                    if wht.type_tax_use != "tax" and wht.amount:
-                                        rate = wht.amount / 100.0
-                                        pay_type = getattr(invoice, 'wht_pay_type', 'normal')
-                                        if pay_type == 'gross_up_forever':
-                                            base = line.price_subtotal / (1 - rate)
-                                        elif pay_type == 'gross_up_once':
-                                            base = line.price_subtotal * (1 + rate)
-                                        else:
-                                            base = line.price_subtotal
-                                            
-                                        wht_amount = round(base * rate, 2)
-                                        wht_amount_ded = round(
-                                            wht_amount * percentage, 2
-                                        )
-                                        final_amount += wht_amount_ded
+            payment.wht_amount = 0.00
+            payment.after_wh_payment_amount = payment.amount
 
-                                    if (
-                                        wht.type_tax_use == "tax"
-                                        and wht.sale_tax_id.id in line.tax_ids.ids
-                                    ):
-                                        if wht.sale_tax_id.price_include:
-                                            amount_after_tax = round(
-                                                line.price_subtotal
-                                                / (1 + wht.sale_tax_id.amount / 100),
-                                                2,
-                                            )
-                                            tax_amount = (
-                                                line.price_subtotal - amount_after_tax
-                                            )
-                                        else:
-                                            tax_amount = round(
-                                                line.price_subtotal
-                                                * (wht.sale_tax_id.amount / 100),
-                                                2,
-                                            )
-                                        wht_amount = round(
-                                            tax_amount * (wht.amount / 100), 2
-                                        )
-                                        wht_amount_ded = round(
-                                            wht_amount * percentage, 2
-                                        )
-                                        final_amount += wht_amount_ded
-
-                    else:
-                        if payment.move_id:
-                            for wht in self.wht_ids:
-                                if wht.type_tax_use != "tax" and wht.amount:
-                                    # Use amount_untaxed for pre-VAT base
-                                    wht_amount = round(
-                                        payment.move_id.amount_untaxed * (wht.amount / 100), 2
-                                    )
-                                    final_amount += wht_amount
-
-            payment.wht_amount = final_amount
-            # Use payment.amount instead of payment_amount to avoid zero value issues in form view
-            payment.after_wh_payment_amount = payment.amount - payment.wht_amount
-
-            if not final_amount:
-                payment.wht_amount = 0.00
-                payment.after_wh_payment_amount = payment.amount
-
-    def generate_lines(self, payment, wht_amount_ded, res, wht, inv=False):
-        company_currency = payment.company_id.currency_id
-        payment_currency = payment.currency_id
-        if payment_currency == company_currency:
-            wht_amount_company = wht_amount_ded
-        else:
-            wht_amount_company = payment_currency._convert(
-                wht_amount_ded, company_currency, payment.company_id, payment.date
-            )
-        debit = 0.0
-        credit = 0.0
-        wht_names = set(self.env["account.wht"].search([]).mapped("name"))
-        if wht_amount_company and payment.payment_type == "outbound":
-            for line in res:
-                if (
-                    line["credit"] != 0.0
-                    and "Write-Off" not in line["name"]
-                    and line["name"]
-                    not in wht_names
-                ):
-                    line["credit"] = round(line["credit"] - wht_amount_company, 2)
-                    if payment_currency != company_currency and "amount_currency" in line:
-                        line["amount_currency"] = round(line["amount_currency"] + wht_amount_ded, 2)
-
-            debit = 0.0
-            credit = wht_amount_company
-        elif wht_amount_company and payment.payment_type == "inbound":
-            for line in res:
-                if (
-                    line["debit"] != 0.0
-                    and "Write-Off" not in line["name"]
-                    and line["account_id"] not in [wht.account_id.id]
-                ):
-                    line["debit"] = round(line["debit"] - wht_amount_company, 2)
-                    if payment_currency != company_currency and "amount_currency" in line:
-                        line["amount_currency"] = round(line["amount_currency"] - wht_amount_ded, 2)
-
-            debit = wht_amount_company
-            credit = 0.0
-
-        res.append(
-            {
-                "name": wht.name,
-                "currency_id": payment_currency.id,
-                "debit": debit,
-                "credit": credit,
-                "amount_currency": wht_amount_ded if debit > 0 else -wht_amount_ded,
-                "date_maturity": payment.date,
-                "partner_id": payment.partner_id.commercial_partner_id.id,
-                "account_id": wht.account_id.id,
-            }
-        )
-
-        if inv and inv.move_type in [
-            "out_invoice",
-            "in_refund",
-            "in_invoice",
-            "out_refund",
-        ]:
-            inv.wht_line_ids.create(
-                {
-                    "name": "Withholding Tax",
-                    "account_id": wht.account_id.id,
-                    "amount": wht_amount_ded,
-                    "move_id": inv.id,
-                }
-            )
-
-    def _generate_journal_entry(
-        self, write_off_line_vals=None, force_balance=None, line_ids=None
-    ):
-        need_move = self.filtered(lambda p: not p.move_id and p.outstanding_account_id)
-        assert len(self) == 1 or (
-            not write_off_line_vals and not force_balance and not line_ids
-        )
-
-        move_vals = []
-        for pay in need_move:
-            move_vals.append(
-                {
-                    "move_type": "entry",
-                    "ref": pay.memo,
-                    "date": pay.date,
-                    "journal_id": pay.journal_id.id,
-                    "company_id": pay.company_id.id,
-                    "partner_id": pay.partner_id.id,
-                    "currency_id": pay.currency_id.id,
-                    "partner_bank_id": pay.partner_bank_id.id,
-                    "line_ids": line_ids
-                    or [
-                        Command.create(line_vals)
-                        for line_vals in pay._prepare_move_line_default_vals(
-                            write_off_line_vals=write_off_line_vals,
-                            force_balance=force_balance,
-                        )
-                    ],
-                    "origin_payment_id": pay.id,
-                }
-            )
-        if (
-            "wh_created" not in self.env.context.get("params", {})
-            or "wh_created" not in self.env.context
-        ):
-            for i, pay in enumerate(need_move):
-                if pay.memo:
-                    related_inv = self.env["account.move"].search([("name", "=", pay.memo)])
-
-                    if related_inv:
-                        wh_amount = self.env["account.move.tax.lines"].search(
-                            [("move_id", "in", related_inv.ids)]
-                        )
-                        if wh_amount and move_vals and len(move_vals[i]["line_ids"]) > 1:
-                            # Safe dynamic lookup: find the largest credit line instead of
-                            # hardcoding index [1][2], which fails when tax/discount lines exist
-                            credit_line = None
-                            for line_tuple in move_vals[i]["line_ids"]:
-                                vals = line_tuple[2] if isinstance(line_tuple, (list, tuple)) and len(line_tuple) > 2 else line_tuple
-                                if vals.get("credit", 0.0) > 0.0:
-                                    if credit_line is None or vals["credit"] > credit_line["credit"]:
-                                        credit_line = vals
-                            if credit_line:
-                                total_wh_amount = sum(wh_amount.mapped("amount"))
-                                debit_amount = round(
-                                    credit_line["credit"] - total_wh_amount, 2
-                                )
-                                if debit_amount:
-                                    for inv in move_vals[i]["line_ids"]:
-                                        vals = inv[2] if isinstance(inv, (list, tuple)) and len(inv) > 2 else inv
-                                        if vals.get("debit", 0.0) > 0.0:
-                                            vals["debit"] = debit_amount
-                                            vals["amount_currency"] = debit_amount
-                                    first_line = move_vals[i]["line_ids"][0]
-                                    first_vals = first_line[2] if isinstance(first_line, (list, tuple)) and len(first_line) > 2 else first_line
-                                    
-                                    for wh_line in wh_amount:
-                                        move_vals[i]["line_ids"].append(
-                                            (
-                                                Command.CREATE,
-                                                0,
-                                                {
-                                                    "account_id": wh_line.account_id.id,
-                                                    "amount_currency": wh_line.amount,
-                                                    "credit": 0.0,
-                                                    "currency_id": self.env.company.currency_id.id,
-                                                    "date_maturity": first_vals.get("date_maturity"),
-                                                    "debit": wh_line.amount,
-                                                    "name": wh_line.name or wh_line.display_name,
-                                                    "partner_id": first_vals.get("partner_id"),
-                                                },
-                                            )
-                                        )
-
-            # If 'params' exists in the context, update it
-            if "params" in self.env.context:
-                params = self.env.context["params"].copy()
-                params["wh_created"] = True
-                # Create a new environment with updated context
-                self = self.with_context(params=params)
-
-            # If 'wh_created' doesn't exist as an attribute, add it to the new context
-            if "wh_created" not in self.env.context:
-                self = self.with_context(wh_created=True)
-        moves = self.env["account.move"].create(move_vals)
-        for pay, move in zip(need_move, moves):
-            pay.write({"move_id": move.id, "state": "in_process"})
+    def action_cancel(self):
+        res = super().action_cancel()
+        # TASK 8: Cancellation Safety - automatically cancel related WHT certificates
+        certificates = self.env["account.wht.certificate"].search([
+            "|",
+            ("payment_id", "in", self.ids),
+            ("payment_ids", "in", self.ids),
+            ("state", "!=", "cancel"),
+        ])
+        for cert in certificates:
+            try:
+                cert.action_cancel()
+                _logger.info("[WHT CANCEL] Cancelled WHT Certificate %s due to payment cancellation", cert.certificate_no)
+            except Exception as e:
+                _logger.exception("[WHT CANCEL ERROR] Failed to cancel WHT Certificate %s: %s", cert.certificate_no, str(e))
+        return res

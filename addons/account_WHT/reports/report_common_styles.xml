@@ -2,21 +2,26 @@
 <odoo>
     <template id="report_common_styles">
         <style>
-            <t t-set="primary_color" t-value="doc.company_id.report_primary_color or '#FDB813'"/>
-            <t t-set="secondary_color" t-value="doc.company_id.report_secondary_color or '#f2f2f2'"/>
-            <t t-set="alt_row_color" t-value="doc.company_id.report_alt_row_color or '#FFF9E6'"/>
-            <t t-set="text_color" t-value="doc.company_id.report_text_color or '#333333'"/>
-            <t t-set="border_color" t-value="doc.company_id.report_border_color or '#000000'"/>
+            <t t-set="comp" t-value="doc and doc.company_id or company or env.company"/>
+            <t t-set="primary_color" t-value="comp.report_primary_color or '#FDB813'"/>
+            <t t-set="secondary_color" t-value="comp.report_secondary_color or '#f2f2f2'"/>
+            <t t-set="alt_row_color" t-value="comp.report_alt_row_color or '#FFF9E6'"/>
+            <t t-set="text_color" t-value="comp.report_text_color or '#333333'"/>
+            <t t-set="border_color" t-value="comp.report_border_color or '#000000'"/>
 
             /* ===== BASE FONT ===== */
-            body, * {
-                font-family: 'TH Sarabun New', 'Garuda', Tahoma, sans-serif !important;
+            .th-page, .th-page * {
+                font-family: 'Sarabun', 'NotoSansThai', 'TH Sarabun New', 'Garuda', Tahoma, sans-serif !important;
                 line-height: 1.2 !important;
             }
 
             /* ===== PAGE ===== */
             .th-page {
                 padding-top: 0px !important;
+            }
+            /* Push report body below header/logo drawn by web.external_layout */
+            .page.th-header-padded {
+                padding-top: 30mm !important;
             }
 
             /* ===== HEADER LAYOUT ===== */
@@ -229,5 +234,24 @@
             .text-right { text-align: right !important; }
             .text-center { text-align: center !important; }
         </style>
+    </template>
+
+    <!-- Inherit web.external_layout to automatically inject the report common styles -->
+    <!--
+    <template id="external_layout_inherit_styles" inherit_id="web.external_layout">
+        <xpath expr="." position="inside">
+            <t t-call="account_WHT.report_common_styles">
+                <t t-set="doc" t-value="o or doc or (docs and docs[0])"/>
+            </t>
+        </xpath>
+    </template>
+    -->
+
+    <template id="external_layout_inherit_styles_active" inherit_id="web.external_layout">
+        <xpath expr="." position="inside">
+            <t t-call="account_WHT.report_common_styles">
+                <t t-set="doc" t-value="o or doc or (docs and docs[0])"/>
+            </t>
+        </xpath>
     </template>
 </odoo>

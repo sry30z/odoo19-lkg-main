@@ -20,7 +20,7 @@ class AccountMoveTax(models.Model):
                 tax.base = sum(matching_lines.mapped('price_subtotal'))
 
     name = fields.Char(string='Tax Description', required=True)
-    tax_id = fields.Many2one('account.tax', string='Tax', ondelete='restrict')
+    tax_id = fields.Many2one('account.tax', string='Tax', ondelete='restrict', required=True)
     move_id = fields.Many2one(
         'account.move',
         string='Invoice',
